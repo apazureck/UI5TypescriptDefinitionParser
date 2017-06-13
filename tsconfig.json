@@ -1,6 +1,7 @@
 {
     "include": [
-        "src/**/*"
+        "src/**/*",
+        "gulpfile.ts"
     ],
     "compilerOptions": {
         "target": "es2017",
