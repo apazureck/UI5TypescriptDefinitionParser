@@ -9,9 +9,5 @@
         "sourceMap": true,
         "outDir": "out",
         "experimentalDecorators": true
-    },
-    "exclude": [
-        "typings",
-        "node_modules"
-    ]
+    }
 }

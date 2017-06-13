@@ -27,5 +27,8 @@
     "gulpclass": "^0.1.2",
     "typescript": "^2.3.4",
     "typings": "^2.1.1"
+  },
+  "dependencies": {
+    "typed-rest-client": "^0.10.0"
   }
 }

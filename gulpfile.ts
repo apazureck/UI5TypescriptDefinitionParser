@@ -1,6 +1,7 @@
 import { Gulpclass, Task, SequenceTask } from "gulpclass";
 import * as gulp from 'gulp';
 import * as del from 'del';
+import { Parser } from './src/Parser'
 
 @Gulpclass()
 export class Gulpfile {
@@ -29,7 +30,7 @@ export class Gulpfile {
 
     @Task()
     default() { // because this task has "default" name it will be run as default gulp task 
-        return ["build"];
+        
     }
 
 }

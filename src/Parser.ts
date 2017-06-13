@@ -1,5 +1,10 @@
+import { RestClient } from 'typed-rest-client/RestClient';
+
 export class Parser {
-    GetUI5Json() {
+    GenerateDeclarations(outfolder: string) {
+        const rc = new RestClient('ui5rc', )
+    }
+    private GetUI5Json() {
         
     }
 }
