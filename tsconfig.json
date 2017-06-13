@@ -1,0 +1,16 @@
+{
+    "include": [
+        "src/**/*"
+    ],
+    "compilerOptions": {
+        "target": "es2017",
+        "module": "commonjs",
+        "sourceMap": true,
+        "outDir": "out",
+        "experimentalDecorators": true
+    },
+    "exclude": [
+        "typings",
+        "node_modules"
+    ]
+}

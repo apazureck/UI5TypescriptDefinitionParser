@@ -1,0 +1,31 @@
+{
+  "name": "ui5typescriptdefinitionparser",
+  "version": "1.0.0",
+  "description": "Parses typescript definitions",
+  "main": "run.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apazureck/UI5TypescriptDefinitionParser.git"
+  },
+  "keywords": [
+    "UI5",
+    "Typescript",
+    "Definition"
+  ],
+  "author": "Andreas Pazureck",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/apazureck/UI5TypescriptDefinitionParser/issues"
+  },
+  "homepage": "https://github.com/apazureck/UI5TypescriptDefinitionParser#readme",
+  "devDependencies": {
+    "del": "^3.0.0",
+    "gulp": "^3.9.1",
+    "gulpclass": "^0.1.2",
+    "typescript": "^2.3.4",
+    "typings": "^2.1.1"
+  }
+}

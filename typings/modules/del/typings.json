@@ -1,0 +1,25 @@
+{
+  "resolution": "main",
+  "tree": {
+    "src": "https://raw.githubusercontent.com/MrHen/typings-del/6870e56e4bb674290c131ee634e22aea7e31c1cd/typings.json",
+    "raw": "registry:npm/del#2.2.0+20160416211512",
+    "main": "index.d.ts",
+    "dependencies": {
+      "pinkie-promise": {
+        "src": "https://raw.githubusercontent.com/typed-typings/npm-pinkie-promise/93d89ef9863fefc95460d770b1b5b59875a21ac1/typings.json",
+        "raw": "registry:npm/pinkie-promise#1.0.0+20160211003958",
+        "main": "index.d.ts",
+        "dependencies": {
+          "es6-promise": {
+            "src": "https://raw.githubusercontent.com/typed-typings/npm-es6-promise/fb04188767acfec1defd054fc8024fafa5cd4de7/typings.json",
+            "raw": "github:typed-typings/npm-es6-promise#fb04188767acfec1defd054fc8024fafa5cd4de7",
+            "main": "dist/es6-promise.d.ts",
+            "name": "es6-promise"
+          }
+        },
+        "name": "pinkie-promise"
+      }
+    },
+    "name": "del"
+  }
+}
