@@ -39,10 +39,15 @@ export interface Event {
     parameters: EventParameter[];
 }
 
-export interface EventParameter {
+export interface EventParameter extends Parameter {
+    parameterProperties: { [key: string]: EventParameterProperty[] };
+}
+
+export interface Parameter {
     name: string;
     type: string;
-    parameterProperties: { [key: string]: EventParameterProperty[] };
+    description?: string;
+    optional?: boolean;
 }
 
 export interface EventParameterProperty {

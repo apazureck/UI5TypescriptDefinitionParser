@@ -1,8 +1,8 @@
 {
-    "version": "0.1.0",
+    "taskName": "tsc",
     "command": "tsc",
+    "args": ["-w"],
     "isShellCommand": true,
-    "args": ["-p", "."],
-    "showOutput": "silent",
-    "problemMatcher": "$tsc"
+    "isBackground": true,
+    "problemMatcher": "$tsc-watch"
 }

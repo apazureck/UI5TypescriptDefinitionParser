@@ -1,6 +1,6 @@
 {
     "connection": {
         "root": "https://openui5.hana.ondemand.com/test-resources",
-        "endpoints": ["sap/m/designtime/api.json"]
+        "endpoints": ["sap/m/designtime/api.json", ]
     }
 }

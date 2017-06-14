@@ -6,6 +6,27 @@
 		"curly": true,
 		"class-name": true,
 		"semicolon": ["always"],
-		"triple-equals": true
+		"triple-equals": true,
+		"array-type": [
+			"array"
+		],
+		"completed-docs": [true],
+		"forin": true,
+		"jsdoc-format": true,
+		"max-classes-per-file": [
+			1
+		],
+		"no-internal-module": true,
+		"no-reference": true,
+		"no-require-imports": true,
+		"prefer-for-of": true,
+		"no-for-in-array": true,
+		"adjacent-overload-signatures": false,
+		"align": [
+			true
+		],
+		"quotemark": [
+			"single"
+		]
 	}
 }

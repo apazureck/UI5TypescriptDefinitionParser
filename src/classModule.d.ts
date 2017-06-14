@@ -1,12 +1,12 @@
 declare module 'classModule' {
-    /*$$imports$$*/
+/*$$imports$$*/
 
-    /*$$description$$*/
+/*$$description$$*/
     export class className /*$$extends$$*/ {
-        /*$$ctors$$*/
+/*$$ctors$$*/
 
-        /*$$events$$*/
+/*$$events$$*/
 
-        /*$$methods$$*/
+/*$$methods$$*/
     }
 }

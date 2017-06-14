@@ -19,18 +19,24 @@ export class Parser {
     }
     GenerateDeclarations(outfolder: string): void {
         this.outfolder = outfolder;
-        const rc = new RestClient("Agent", this.config.connection.root);
+        if (this.config.connection.root.match(/^file:\/\/\//)) {
+            for(const endpoint of this.config.connection.endpoints) {
+                const content = fs.readFileSync(path.join(this.config.connection.root.replace(/^file:\/\/\//, ""), endpoint), 'utf-8');
+                this.getModules(JSON.parse(content));
+            }
+        } else {
+            const rc = new RestClient("Agent", this.config.connection.root);
 
-        for (const endpoint of this.config.connection.endpoints) {
-            rc.get(this.config.connection.root + "/" + endpoint).then(((value) => {
-                let test = value.result;
-                this.getModules(value.result);
-            }).bind(this));
+            for (const endpoint of this.config.connection.endpoints) {
+                rc.get(this.config.connection.root + "/" + endpoint).then(((value) => {
+                    this.getModules(value.result);
+                }).bind(this));
+            }
         }
     }
 
     private getModules(api: Api) {
-        const classgen = new ClassGenerator(fs.readFileSync("classModule.d.ts", 'utf8'), this.outfolder);
+        const classgen = new ClassGenerator(fs.readFileSync("classModule.d.ts", 'utf8'), this.outfolder, this.config);
         if (!fs.existsSync(this.outfolder)) {
             fs.mkdirSync(this.outfolder);
         }
