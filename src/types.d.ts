@@ -2,6 +2,9 @@ export interface Config {
     connection: {
         root: string;
         endpoints: string[];
+    },
+    substitutedTypes: {
+        [key: string]: string
     }
 }
 
@@ -28,8 +31,21 @@ export interface Symbol {
     ui5metadata?: {};
     "constructor"?: {};
     properties?: {}[];
-    methods?: {}[];
+    methods?: Method[];
     events?: Event[];
+}
+
+export interface Method {
+    name: string;
+    visibility: Visibility;
+    description: string;
+    parameters?: Parameter[];
+    returnValue?: ReturnValue;
+}
+
+export interface ReturnValue {
+    type: string;
+    description?: string;
 }
 
 export interface Event {
