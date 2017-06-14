@@ -22,13 +22,16 @@
   },
   "homepage": "https://github.com/apazureck/UI5TypescriptDefinitionParser#readme",
   "devDependencies": {
+    "@types/gulp": "^4.0.4",
+    "@types/gulp-util": "^3.0.31",
+    "@types/node": "^7.0.31",
     "del": "^3.0.0",
     "gulp": "^3.9.1",
     "gulpclass": "^0.1.2",
-    "typescript": "^2.3.4",
-    "typings": "^2.1.1"
+    "typescript": "^2.3.4"
   },
   "dependencies": {
+    "fs": "0.0.1-security",
     "typed-rest-client": "^0.10.0"
   }
 }

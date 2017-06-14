@@ -4,10 +4,16 @@
         "gulpfile.ts"
     ],
     "compilerOptions": {
-        "target": "es2017",
+        "target": "es5",
         "module": "commonjs",
         "sourceMap": true,
+        "moduleResolution": "node",
         "outDir": "out",
         "experimentalDecorators": true
-    }
+    },
+    "types": ["node"],
+    "exclude": [
+        "out",
+        "test"
+    ]
 }
