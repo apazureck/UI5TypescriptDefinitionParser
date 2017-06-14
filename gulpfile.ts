@@ -13,8 +13,8 @@ export class Gulpfile {
 
     @Task()
     copySourceFiles() {
-        return gulp.src(["../src/**.json"])
-            .pipe(gulp.dest("./src"));
+        return gulp.src(["../src/**.json", "../src/**.d.ts"])
+            .pipe(gulp.dest(""));
     }
 
 

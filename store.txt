@@ -1,6 +1,5 @@
 "sap/tnt/designtime/api.json",
             "sap/ui/commons/designtime/api.json",
-            "sap/ui/core/designtime/api.json",
             "sap/ui/demokit/designtime/api.json",
             "sap/ui/dt/designtime/api.json",
             "sap/ui/layout/designtime/api.json",

@@ -1,78 +1,57 @@
+import { Api, Config } from './types';
+import { ClassGenerator } from './ClassGenerator';
 import * as fs from 'fs';
 import { RestClient } from 'typed-rest-client/RestClient';
 import * as path from 'path';
 
-export interface Config {
-    connection: {
-        root: string;
-        endpoints: string[];
-    }
-}
-
-export interface Api {
-    version: string;
-    library: string;
-    symbols: Symbol[];
-}
-
-export type Kind = "namespace" | "class" | "enum";
-export type Visibility = "public" | "protected" | "private"
-
-export interface Symbol {
-    kind: Kind;
-    name: string;
-    basename: string;
-    resource: string;
-    module: string;
-    export: string;
-    static: boolean;
-    visibility: Visibility;
-    description: string;
-    extends?: string;
-    ui5metadata?: {};
-    "constructor"?: {};
-    properties?: {}[];
-    methods?: {}[];
-}
-
+/**
+ * 
+ * 
+ * @export
+ * @class Parser
+ */
 export class Parser {
 
     private config: Config;
     private outfolder: string;
-
     constructor(private configPath: string) {
         this.config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     }
-    GenerateDeclarations(outfolder: string): Promise<any> {
+    GenerateDeclarations(outfolder: string): void {
         this.outfolder = outfolder;
         const rc = new RestClient("Agent", this.config.connection.root);
 
-        return rc.get(this.config.connection.root + "/" + this.config.connection.endpoints[0]).then(((value) => {
-            let test = value.result;
-            this.getModules(value.result);
-        }).bind(this));
+        for (const endpoint of this.config.connection.endpoints) {
+            rc.get(this.config.connection.root + "/" + endpoint).then(((value) => {
+                let test = value.result;
+                this.getModules(value.result);
+            }).bind(this));
+        }
     }
 
     private getModules(api: Api) {
-        const classTemplate = fs.readFileSync("classModule.d.ts", 'utf8');
-        if(!fs.existsSync(this.outfolder)) {
+        const classgen = new ClassGenerator(fs.readFileSync("classModule.d.ts", 'utf8'), this.outfolder);
+        if (!fs.existsSync(this.outfolder)) {
             fs.mkdirSync(this.outfolder);
         }
-        
-        for(const s of api.symbols) {
-            switch(s.kind) {
+
+        for (const s of api.symbols) {
+            switch (s.kind) {
                 case "enum":
-                break;
+                    break;
                 case "class":
-                    let ct = classTemplate.toString();
-                    ct = ct.replace("classModule", s.module);
-                    ct = ct.replace("className", s.basename);
-                    fs.writeFileSync(path.join(this.outfolder, s.name+".d.ts"), ct, 'utf-8');
-                break;
+                    const cstring = classgen.createClass(s);
+                    console.log("Created Declaration for class '" + s.name + "'");
+                    // Write to file
+                    // TODO: Create folder structure
+                    fs.writeFileSync(path.join(this.outfolder, s.name + ".d.ts"), cstring, 'utf-8');
+                    break;
                 case "namespace":
-                break;
+                    break;
+                case "interface":
+                    break;
                 default:
-                console.log("New Type discovered: " + s.kind);
+                    console.log("New Type discovered: " + s.kind);
             }
         }
     }
