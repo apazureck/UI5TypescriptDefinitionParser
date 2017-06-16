@@ -1,5 +1,10 @@
-import { Config } from './types';
-export abstract class GeneratorBase {
+import { Config } from './UI5DocumentationTypes';
+
+export interface ILogDecorator {
+    log(message: string, sourceStack?: string): void;
+}
+
+export abstract class GeneratorBase implements ILogDecorator {
 
     protected readonly typeSeparators = /[\.\/]/g
     protected readonly tsBaseTypes = {
@@ -37,7 +42,15 @@ export abstract class GeneratorBase {
             }
 
             if (this.config.substitutedTypes.hasOwnProperty(type)) {
-                type = this.config.substitutedTypes[type];
+                const oldtype = type;
+                
+                this.log("Replaced: Type '" + oldtype + "' => Type '" + type + "'");
+
+                // Check if class is namespaced
+                if(!type.match(/\./)) {
+                    ret.push(this.config.substitutedTypes[type]);
+                    continue;
+                }
             }
 
             if (this.tsBaseTypes.hasOwnProperty(type)) {
@@ -73,5 +86,9 @@ export abstract class GeneratorBase {
             ret += " * " + line + "\n";
         }
         return ret + "**/";
+    }
+
+    log(message: string, sourceStack?: string) {
+        this.log(sourceStack + ": " + message);
     }
 }

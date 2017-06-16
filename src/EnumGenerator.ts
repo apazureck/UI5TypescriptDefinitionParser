@@ -1,5 +1,5 @@
 import { GeneratorBase } from './GeneratorBase';
-import { Config, Symbol } from './types';
+import { Config, Symbol } from './UI5DocumentationTypes';
 
 export class EnumGenerator extends GeneratorBase {
     constructor(config: Config) {
@@ -17,7 +17,7 @@ export class EnumGenerator extends GeneratorBase {
         let enumtypedef = "export type " + enumname + " = ";
         if (symbol.properties) {
             const types = symbol.properties.map((value, index, array) => {
-                return (value as any).name as string;
+                return "\"" + (value as any).name + "\"";
             });
             enumtypedef += types.join(" | ") + ";\n";
         } else {

@@ -1,11 +1,11 @@
 import { MethodGenerator } from './MethodGenerator';
 import { EventGenerator } from './EventGenerator';
-import { GeneratorBase } from './GeneratorBase';
+import { GeneratorBase, ILogDecorator } from './GeneratorBase';
 import { ADDRGETNETWORKPARAMS } from 'dns';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Config, Method, Parameter, ReturnValue, Symbol } from './types';
-import * as types from './types';
+import { Config, Method, Parameter, ReturnValue, Symbol } from './UI5DocumentationTypes';
+import * as types from './UI5DocumentationTypes';
 
 interface Dictionary {
     [key: string]: string;
@@ -13,14 +13,17 @@ interface Dictionary {
 export class ClassGenerator extends GeneratorBase {
     
     private imports: Dictionary;
+
+    private currentClass: Symbol;
     /**
      *
      */
-    constructor(private classTemplate: string, private outfolder: string, config: Config) {
+    constructor(private classTemplate: string, private outfolder: string, config: Config, private decorated: ILogDecorator) {
         super(config)
     }
 
     createClass(sClass: Symbol): string {
+        this.currentClass = sClass;
         this.imports = {};
         let ct = this.classTemplate.toString();
         // 1. Set Module Name
@@ -37,7 +40,7 @@ export class ClassGenerator extends GeneratorBase {
 
         // 4. Create Events
         if (sClass.events) {
-            const ec = new EventGenerator(this.config, this.addImport.bind(this));
+            const ec = new EventGenerator(this.config, this.addImport.bind(this), this);
             ct = ct.replace("/*$$events$$*/", this.addTabs(sClass.events.map((value, index, array) => {
                 return ec.createEventString(value).method;
             }).join("\n"), 2));
@@ -47,7 +50,7 @@ export class ClassGenerator extends GeneratorBase {
 
         // 5. Create methods
         if (sClass.methods) {
-            const mc = new MethodGenerator(this.config, this.addImport.bind(this));
+            const mc = new MethodGenerator(this.config, this.addImport.bind(this), this);
             ct = ct.replace("/*$$methods$$*/", this.addTabs(sClass.methods.map((value, index, array) => {
                 return mc.createMethodString(value).method;
             }).join("\n"), 2));
@@ -59,7 +62,7 @@ export class ClassGenerator extends GeneratorBase {
         if(sClass.constructor) {
             sClass.constructor.name = "constructor";
             sClass.constructor.visibility = "public";
-            const mc = new MethodGenerator(this.config, this.addImport.bind(this));
+            const mc = new MethodGenerator(this.config, this.addImport.bind(this), this);
             let ctors = mc.createMethodString(sClass.constructor).method;
             if(sClass.constructor.parameters && sClass.constructor.parameters[0].name === "sId" && sClass.constructor.parameters[0].optional === true) {
                 let noIdCtor = sClass.constructor;
@@ -114,5 +117,13 @@ export class ClassGenerator extends GeneratorBase {
             }
         }
         return ret;
+    }
+
+    log(message: string, sourceStack?: string) {
+        if(sourceStack) {
+            this.decorated.log("Class '" + this.currentClass.basename + "' -> " + sourceStack, message);
+        } else {
+            this.decorated.log("Class '" + this.currentClass.basename + "'", message);
+        }
     }
 }

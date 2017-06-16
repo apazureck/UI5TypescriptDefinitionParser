@@ -1,13 +1,15 @@
-import { Config, Parameter } from './types';
-import { GeneratorBase } from './GeneratorBase';
-import * as types from './types';
+import { Config, Parameter } from './UI5DocumentationTypes';
+import { GeneratorBase, ILogDecorator } from './GeneratorBase';
+import * as types from './UI5DocumentationTypes';
 export class EventGenerator extends GeneratorBase {
-    constructor(config: Config, addImport: (type: string) => void) {
+    currentEvent: types.Event;
+    constructor(config: Config, addImport: (type: string) => void, private decorated: ILogDecorator) {
         super(config);
         this.onAddImport = addImport;
     }
 
     public createEventString(event: types.Event): { method: string, additionalTypes: string[] } {
+        this.currentEvent = event;
         let ret = {
             method: "",
             additionalTypes: []
@@ -37,5 +39,13 @@ export class EventGenerator extends GeneratorBase {
         }
 
         return this.makeComment(ret);
+    }
+
+    log(message: string, sourceStack?: string) {
+        if(sourceStack) {
+            this.decorated.log("Event '" + this.currentEvent.name + "' -> " + sourceStack, message);
+        } else {
+            this.decorated.log("Event '" + this.currentEvent.name + "'", message);
+        }
     }
 }

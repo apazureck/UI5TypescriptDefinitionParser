@@ -1,8 +1,8 @@
 import { GeneratorBase } from './GeneratorBase';
-import { Config, Method, Parameter, ReturnValue } from './types';
+import { Config, Method, Parameter, ReturnValue } from './UI5DocumentationTypes';
 export class MethodGenerator extends GeneratorBase {
-
-    constructor(config: Config, addImport: (type: string) => void) {
+    private currentMethod: Method;
+    constructor(config: Config, addImport: (type: string) => void, private decorated: GeneratorBase) {
         super(config);
         this.onAddImport = addImport;
     }
@@ -25,7 +25,9 @@ export class MethodGenerator extends GeneratorBase {
         return this.makeComment(ret);
     }
 
+    
     public createMethodString(method: Method): { method: string } {
+        this.currentMethod = method;
         let ret = {
             method: "",
             additionalTypes: []
@@ -91,5 +93,13 @@ export class MethodGenerator extends GeneratorBase {
         }
         ret.method += ";";
         return ret;
+    }
+
+    log(message: string, sourceStack?: string) {
+        if(sourceStack) {
+            this.decorated.log("Function '" + this.currentMethod.name + "' -> " + sourceStack, message);
+        } else {
+            this.decorated.log("Function '" + this.currentMethod.name + "'", message);
+        }
     }
 }

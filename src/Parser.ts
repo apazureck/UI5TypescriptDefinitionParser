@@ -1,10 +1,11 @@
-import { Api, Config } from './types';
+import { ILogDecorator } from './GeneratorBase';
+import { Api, Config } from './UI5DocumentationTypes';
 import { ClassGenerator } from './ClassGenerator';
 import { EnumGenerator } from './EnumGenerator';
 import { SSL_OP_NETSCAPE_DEMO_CIPHER_CHANGE_BUG } from 'constants';
 import * as fs from 'fs';
-import { RestClient } from 'typed-rest-client/RestClient';
 import * as path from 'path';
+import { RestClient } from 'typed-rest-client/RestClient';
 
 /**
  * 
@@ -12,7 +13,7 @@ import * as path from 'path';
  * @export
  * @class Parser
  */
-export class Parser {
+export class Parser implements ILogDecorator {
 
     private config: Config;
     private outfolder: string;
@@ -23,6 +24,8 @@ export class Parser {
             api?: Api;
         }
     } = {};
+
+    private currentApi: Api;
 
     constructor(private configPath: string) {
         this.config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
@@ -84,6 +87,7 @@ export class Parser {
     }
 
     private getEnums(api: Api) {
+        this.currentApi = api;
         let info = { generatedEnumCount: 0 }
         const enumGen = new EnumGenerator(this.config);
         if (!fs.existsSync(this.outfolder)) {
@@ -99,14 +103,15 @@ export class Parser {
             }
             if (enums.length > 0) {
                 fs.writeFileSync(path.join(this.outfolder, api.library + "enums..d.ts"), enums.join("\n"), 'utf-8');
-                console.log("Created Enums for '" + api.library + "'");
+                this.log("Created Enums for '" + api.library + "'");
             }
         }
     }
 
     private getClasses(api: Api): { generatedClassCount: number } {
+        this.currentApi = api;
         let info = { generatedClassCount: 0 }
-        const classgen = new ClassGenerator(fs.readFileSync("classModule.d.ts", 'utf8'), this.outfolder, this.config);
+        const classgen = new ClassGenerator(fs.readFileSync("classModule.d.ts", 'utf8'), this.outfolder, this.config, this);
         if (!fs.existsSync(this.outfolder)) {
             fs.mkdirSync(this.outfolder);
         }
@@ -120,7 +125,7 @@ export class Parser {
                         // Write to file
                         // TODO: Create folder structure
                         fs.writeFileSync(path.join(this.outfolder, s.name + ".d.ts"), cstring, 'utf-8');
-                        console.log("Created Declaration for class '" + s.name + "'");
+                        this.log("Created Declaration for class '" + s.name + "'");
                         info.generatedClassCount++;
                         break;
                     case "namespace":
@@ -128,12 +133,21 @@ export class Parser {
                     case "interface":
                         break;
                     default:
-                        console.log("New Type discovered: " + s.kind);
+                        this.log("New Type discovered: " + s.kind);
                 }
             }
         }
 
-        console.log("Created " + info.generatedClassCount + " classes of Library " + api.library);
+        this.log("Created " + info.generatedClassCount + " classes of Library " + api.library);
         return info;
+    }
+
+    log(message: string, sourceStack?: string) {
+        
+        if(sourceStack) {
+            console.log("Library '" + this.currentApi.library + "' -> " + sourceStack + ": " + message);
+        } else {
+            console.log("Library '" + this.currentApi.library + "': " + message);
+        }
     }
 }
