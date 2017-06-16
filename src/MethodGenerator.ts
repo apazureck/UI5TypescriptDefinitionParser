@@ -83,7 +83,7 @@ export class MethodGenerator extends GeneratorBase {
         if (method.parameters) {
             ret.method += method.parameters.map((value, index, array) => {
                 return value.name + (value.optional ? "?" : "") + ": " + this.getType(value.type);
-            }).join(",");
+            }).join(", ");
         }
         ret.method += ")";
         if (method.returnValue) {

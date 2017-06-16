@@ -55,6 +55,22 @@ export class ClassGenerator extends GeneratorBase {
             ct = ct.replace("/*$$methods$$*/", "");
         }
 
+        // 6. Create Constructor
+        if(sClass.constructor) {
+            sClass.constructor.name = "constructor";
+            sClass.constructor.visibility = "public";
+            const mc = new MethodGenerator(this.config, this.addImport.bind(this));
+            let ctors = mc.createMethodString(sClass.constructor).method;
+            if(sClass.constructor.parameters && sClass.constructor.parameters[0].name === "sId" && sClass.constructor.parameters[0].optional === true) {
+                let noIdCtor = sClass.constructor;
+                noIdCtor.parameters.shift();
+                ctors += "\n" + mc.createMethodString(sClass.constructor).method;
+            }
+            ct = ct.replace("/*$$ctors$$*/", this.addTabs(ctors, 2));
+        } else {
+            ct = ct.replace("/*$$ctors$$*/", "");
+        }
+
         // Replace Imports
         if (this.imports[sClass.basename]) {
             delete this.imports[sClass.basename];

@@ -4,7 +4,10 @@ export interface Config {
         endpoints: string[];
     },
     substitutedTypes: {
-        [key: string]: string
+        [key: string]: string;
+    },
+    enums: {
+        [key: string]: string;
     }
 }
 
@@ -15,7 +18,9 @@ export interface Api {
 }
 
 export type Kind = "namespace" | "class" | "enum" | "interface";
-export type Visibility = "public" | "protected" | "private"
+export type Visibility = "public" | "protected" | "private";
+
+export type StaticType = "string"
 
 export interface Symbol {
     kind: Kind;
@@ -29,7 +34,7 @@ export interface Symbol {
     description: string;
     extends?: string;
     ui5metadata?: {};
-    "constructor"?: {};
+    "constructor"?: Method;
     properties?: {}[];
     methods?: Method[];
     events?: Event[];
@@ -70,4 +75,23 @@ export interface EventParameterProperty {
     name: string;
     type: string;
     optional: boolean;
+}
+
+export interface Enum {
+    kind: string;
+    name: string;
+    resource: string;
+    module: string;
+    export: string;
+    static: boolean;
+    visibility: Visibility;
+    description: string;
+    properties: EnumProperty[]
+}
+
+export interface EnumProperty {
+    name: string;
+    visibility: Visibility;
+    static: boolean;
+    type: StaticType
 }

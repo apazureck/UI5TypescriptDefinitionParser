@@ -45,6 +45,11 @@ export abstract class GeneratorBase {
                 continue;
             }
 
+            if(this.config.enums.hasOwnProperty(type)) {
+                ret.push(isArray ? type + "[]" : type);
+                continue;
+            }
+
             this.addImport(type);
             ret.push(isArray ? type.split(this.typeSeparators).pop() + "[]" : type.split(this.typeSeparators).pop());
         }
@@ -59,7 +64,10 @@ export abstract class GeneratorBase {
 
     protected onAddImport: (type: string) => void;
 
-    protected makeComment(description: string) {
+    protected makeComment(description: string): string {
+        if(!description) {
+            return "";
+        }
         let ret = "/**\n";
         for (const line of description.split("\n")) {
             ret += " * " + line + "\n";

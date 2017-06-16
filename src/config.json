@@ -1,7 +1,19 @@
 {
     "connection": {
         "root": "https://openui5.hana.ondemand.com/test-resources",
-        "endpoints": ["sap/m/designtime/api.json", "sap/ui/core/designtime/api.json"]
+        "endpoints": ["sap/m/designtime/api.json",
+            "sap/ui/core/designtime/api.json",
+            "sap/tnt/designtime/api.json",
+            "sap/ui/commons/designtime/api.json",
+            "sap/ui/demokit/designtime/api.json",
+            "sap/ui/dt/designtime/api.json",
+            "sap/ui/layout/designtime/api.json",
+            "sap/ui/suite/designtime/api.json",
+            "sap/ui/table/designtime/api.json",
+            "sap/ui/unified/designtime/api.json",
+            "sap/ui/ux3/designtime/api.json",
+            "sap/uxap/designtime/api.json"
+        ]
     },
     "substitutedTypes": {
         "*": "any",
@@ -31,7 +43,7 @@
         "Error": "any",
         "event": "any",
         "float": "number",
-        "function": "any",
+        "function": "() => any",
         "Generator": "any",
         "HTMLElement": "any",
         "int": "number",
@@ -91,5 +103,6 @@
         "true": "boolean",
         "undefined": "any",
         "Window": "any"
-    }
+    },
+    "enums": {}
 }
