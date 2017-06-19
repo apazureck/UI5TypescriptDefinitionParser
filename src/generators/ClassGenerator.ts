@@ -40,7 +40,7 @@ export class ClassGenerator extends GeneratorBase {
         if (sClass.events) {
             const ec = new EventGenerator(this.config, this.addImport.bind(this), this);
             ct = ct.replace("/*$$events$$*/", this.addTabs(sClass.events.map((value, index, array) => {
-                return ec.createEventString(value).method;
+                return ec.createEventString(value, sClass.basename).method;
             }).join("\n"), 2));
         } else {
             ct = ct.replace("/*$$events$$*/", "");

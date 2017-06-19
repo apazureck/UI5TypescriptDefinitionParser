@@ -14,6 +14,7 @@
     "types": ["node"],
     "exclude": [
         "out",
-        "test"
+        "test",
+        "src/replacements"
     ]
 }
