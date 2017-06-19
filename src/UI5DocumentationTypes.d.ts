@@ -7,7 +7,9 @@ export interface IApi {
 export type Kind = "namespace" | "class" | "enum" | "interface";
 export type Visibility = "public" | "protected" | "private";
 
-export type StaticType = "string"
+export type StaticType = "string";
+
+export type Cardinality = "0..n";
 
 export interface ISymbol {
     kind: Kind;
@@ -20,11 +22,45 @@ export interface ISymbol {
     visibility: Visibility;
     description: string;
     extends?: string;
-    ui5metadata?: {};
+    "ui5-metadata"?: {
+        properties: IProperty[];
+        associations: IAssociation;
+        events: IMetaEvent;
+    };
     "constructor"?: IMethod;
     properties?: {}[];
     methods?: IMethod[];
     events?: IEvent[];
+}
+
+export interface IProperty {
+    name: string;
+    type: string;
+    defaultValue: string;
+    group: string;
+    visibility: Visibility;
+    description: string;
+    methods: string[];
+}
+
+export interface IAssociation {
+    name: string;
+    singularName: string;
+    type: string;
+    cardinality: Cardinality;
+    description: string;
+    methods: string[];
+}
+
+export interface IMetaEvent {
+    name: string;
+    visibility: Visibility;
+    description: string;
+    deprecated?: {
+        since: string;
+        text: string;
+    }
+    methods: string[]
 }
 
 export interface IMethod {

@@ -28,7 +28,7 @@ export class MethodGenerator extends GeneratorBase {
     }
 
 
-    public createMethodString(method: IMethod): string {
+    public createMethodString(method: IMethod, suppressReturnValue?: boolean): string {
         this.currentMethod = method;
         let ret = {
             method: "",
@@ -37,14 +37,14 @@ export class MethodGenerator extends GeneratorBase {
 
         // Overloads
         if (method.parameters && method.parameters.length > 1) {
-            return this.createMethodStubs(method).map((value, index, array) => value.description + "\n" + value.method).join("\n");
+            return this.createMethodStubs(method, suppressReturnValue).map((value, index, array) => value.description + "\n" + value.method).join("\n");
         } else {
-            let stub = this.createMethodStub(method);
+            let stub = this.createMethodStub(method, suppressReturnValue);
             return stub.description + "\n" + stub.method;
         }
     }
 
-    public createMethodStubs(method: IMethod): { method: string; description: string }[] {
+    public createMethodStubs(method: IMethod, suppressReturnValue?: boolean): { method: string; description: string }[] {
         this.currentMethod = method;
         if (method.parameters && method.parameters.length > 1) {
             let overloads: { method: string; description: string }[] = [];
@@ -62,7 +62,7 @@ export class MethodGenerator extends GeneratorBase {
                     }
                     // remove optional parameter and create method stub
                     let save = method.parameters.splice(firstOptionalIndex, 1).pop();
-                    overloads.push(this.createMethodStub(method));
+                    overloads.push(this.createMethodStub(method, suppressReturnValue));
                     method.parameters.splice(firstOptionalIndex, 0, save);
 
                     // Reset method parameters array
@@ -75,7 +75,7 @@ export class MethodGenerator extends GeneratorBase {
                     // Reevaluate optional map
                     optionalMap = method.parameters.map((value) => value.optional || false);
                 } else {
-                    overloads.push(this.createMethodStub(method));
+                    overloads.push(this.createMethodStub(method, suppressReturnValue));
                 }
             } while (lastMandatoryIndex !== -1 && firstOptionalIndex !== -1 && firstOptionalIndex < lastMandatoryIndex);
             return overloads;
@@ -84,14 +84,15 @@ export class MethodGenerator extends GeneratorBase {
         }
     }
 
-    public createMethodStub(method: IMethod): { method: string; description: string } {
+    public createMethodStub(method: IMethod, suppressReturnValue?: boolean): { method: string; description: string } {
+        suppressReturnValue = suppressReturnValue || false;
         this.currentMethod = method;
         let ret = {
             description: "",
             method: ""
         }
         if (method.description) {
-            ret.description = this.createDescription(method.description, method.parameters, method.returnValue) + "\n";
+            ret.description = this.createDescription(method.description, method.parameters, suppressReturnValue ? undefined : method.returnValue) + "\n";
         }
         if (method.visibility as any === "restricted") {
             method.visibility = "private";
@@ -109,7 +110,10 @@ export class MethodGenerator extends GeneratorBase {
             }).join(", ");
         }
         ret.method += ")";
-        if (method.returnValue) {
+        if(suppressReturnValue) {
+            
+        }
+        else if (method.returnValue) {
             ret.method += ": " + this.getType(method.returnValue.type);
         } else {
             ret.method += ": void";

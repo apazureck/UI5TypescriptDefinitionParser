@@ -62,11 +62,11 @@ export class ClassGenerator extends GeneratorBase {
                 sClass.constructor.name = "constructor";
                 sClass.constructor.visibility = "public";
                 const mc = new MethodGenerator(this.config, this.addImport.bind(this), this);
-                let ctors = mc.createMethodString(sClass.constructor);
+                let ctors = mc.createMethodString(sClass.constructor, true);
                 if (sClass.constructor.parameters && sClass.constructor.parameters[0].name === "sId" && sClass.constructor.parameters[0].optional === true) {
                     let noIdCtor = sClass.constructor;
                     noIdCtor.parameters.shift();
-                    ctors += "\n" + mc.createMethodString(sClass.constructor);
+                    ctors += "\n" + mc.createMethodString(sClass.constructor, true);
                 }
                 ct = ct.replace("/*$$ctors$$*/", this.addTabs(ctors, 2));
             } else {
@@ -77,6 +77,11 @@ export class ClassGenerator extends GeneratorBase {
             ct = ct.replace("/*$$ctors$$*/", "");
         }
 
+        // Create Property Interface
+
+        ct = ct.replace("/*$$propertyInterface$$*/", this.createMetadataInterface(sClass));
+
+
         // Replace Imports
         if (this.imports[sClass.basename]) {
             delete this.imports[sClass.basename];
@@ -85,8 +90,38 @@ export class ClassGenerator extends GeneratorBase {
         return ct;
     }
 
+    private createMetadataInterface(sClass: ISymbol): string {
+        let ret = "export interface I" + sClass.basename + "Metadata";
+
+        if (sClass.extends) {
+            const exmeta = "I" + sClass.extends.split(this.typeSeparators).pop() + "Metadata";
+            ret += " extends " + exmeta;
+            this.imports[exmeta] = `import { ${exmeta} } from '${sClass.extends.replace(/\./g, "/")}'`;
+        }
+
+        ret += " {\n";
+
+        let props: string[] = [];
+
+        if (sClass["ui5-metadata"]) {
+            if (sClass["ui5-metadata"].properties) {
+                for (const prop of sClass["ui5-metadata"].properties) {
+                    let pstring: string = prop.name;
+                    pstring += "?: ";
+                    pstring += this.getType(prop.type);
+                    pstring += ";";
+                    props.push(pstring);
+                }
+            }
+        }
+
+        ret += this.addTabs(props.join("\n"), 1);
+
+        return ret + "\n}";
+    }
+
     private createDescription(description: string): string {
-        if(!description) {
+        if (!description) {
             return "";
         }
         let ret = "/**\n";
@@ -108,7 +143,7 @@ export class ClassGenerator extends GeneratorBase {
      * @memberof ClassGenerator
      */
     onAddImport = (fullTypeName: string) => {
-        if(!fullTypeName) {
+        if (!fullTypeName) {
             return;
         }
         const typename = fullTypeName.split(this.typeSeparators).pop();
