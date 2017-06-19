@@ -1,12 +1,14 @@
 import { GeneratorBase } from './GeneratorBase';
-import { Config, Method, Parameter, ReturnValue } from './UI5DocumentationTypes';
+import { IConfig, ILogDecorator } from '../types';
+import { IMethod, IParameter, IParameterProperty, IReturnValue } from '../UI5DocumentationTypes';
+
 export class MethodGenerator extends GeneratorBase {
-    private currentMethod: Method;
-    constructor(config: Config, addImport: (type: string) => void, private decorated: GeneratorBase) {
+    private currentMethod: IMethod;
+    constructor(config: IConfig, addImport: (type: string) => void, private decorated: ILogDecorator) {
         super(config);
         this.onAddImport = addImport;
     }
-    private createDescription(description: string, parameters?: Parameter[], returnValue?: ReturnValue): string {
+    private createDescription(description: string, parameters?: IParameter[], returnValue?: IReturnValue): string {
         let ret = "";
         if (description) {
             ret = this.styleJsDoc(description) + "\n";
@@ -25,8 +27,8 @@ export class MethodGenerator extends GeneratorBase {
         return this.makeComment(ret);
     }
 
-    
-    public createMethodString(method: Method): { method: string } {
+
+    public createMethodString(method: IMethod): string {
         this.currentMethod = method;
         let ret = {
             method: "",
@@ -35,7 +37,17 @@ export class MethodGenerator extends GeneratorBase {
 
         // Overloads
         if (method.parameters && method.parameters.length > 1) {
-            let overloads: string[] = [];
+            return this.createMethodStubs(method).map((value, index, array) => value.description + "\n" + value.method).join("\n");
+        } else {
+            let stub = this.createMethodStub(method);
+            return stub.description + "\n" + stub.method;
+        }
+    }
+
+    public createMethodStubs(method: IMethod): { method: string; description: string }[] {
+        this.currentMethod = method;
+        if (method.parameters && method.parameters.length > 1) {
+            let overloads: { method: string; description: string }[] = [];
             let optionalMap = method.parameters.map((value) => value.optional || false);
             let firstOptionalIndex: number;
             let lastMandatoryIndex: number;
@@ -50,7 +62,7 @@ export class MethodGenerator extends GeneratorBase {
                     }
                     // remove optional parameter and create method stub
                     let save = method.parameters.splice(firstOptionalIndex, 1).pop();
-                    overloads.push(this.createMethodStub(method).method);
+                    overloads.push(this.createMethodStub(method));
                     method.parameters.splice(firstOptionalIndex, 0, save);
 
                     // Reset method parameters array
@@ -63,40 +75,74 @@ export class MethodGenerator extends GeneratorBase {
                     // Reevaluate optional map
                     optionalMap = method.parameters.map((value) => value.optional || false);
                 } else {
-                    overloads.push(this.createMethodStub(method).method);
+                    overloads.push(this.createMethodStub(method));
                 }
-            } while (lastMandatoryIndex !== -1 && firstOptionalIndex !== -1 && firstOptionalIndex < lastMandatoryIndex)
-            return { method: overloads.join("\n") };
+            } while (lastMandatoryIndex !== -1 && firstOptionalIndex !== -1 && firstOptionalIndex < lastMandatoryIndex);
+            return overloads;
         } else {
-            return this.createMethodStub(method);
+            return [this.createMethodStub(method)];
         }
     }
 
-    private createMethodStub(method: Method): { method: string } {
+    public createMethodStub(method: IMethod): { method: string; description: string } {
+        this.currentMethod = method;
         let ret = {
+            description: "",
             method: ""
         }
         if (method.description) {
-            ret.method += this.createDescription(method.description, method.parameters, method.returnValue) + "\n";
+            ret.description = this.createDescription(method.description, method.parameters, method.returnValue) + "\n";
         }
-
+        if (method.visibility as any === "restricted") {
+            method.visibility = "private";
+        }
         ret.method += method.visibility !== "public" ? method.visibility + " " : "";
+        ret.method += method.static ? "static " : "";
         ret.method += method.name + "(";
         if (method.parameters) {
             ret.method += method.parameters.map((value, index, array) => {
-                return value.name + (value.optional ? "?" : "") + ": " + this.getType(value.type);
+                if (value.parameterProperties) {
+                    return value.name + (value.optional ? "?" : "") + ": " + this.getParameterProperties(value.parameterProperties);
+                } else {
+                    return value.name + (value.optional ? "?" : "") + ": " + this.getType(value.type);
+                }
             }).join(", ");
         }
         ret.method += ")";
         if (method.returnValue) {
             ret.method += ": " + this.getType(method.returnValue.type);
+        } else {
+            ret.method += ": void";
         }
         ret.method += ";";
         return ret;
     }
 
+    private getParameterProperties(pps: IParameterProperty[]): string {
+        let ret = "{ ";
+
+        for (const ppkey in pps) {
+            if (pps[ppkey]) {
+                const pp = pps[ppkey];
+                if (pp.description) {
+                    ret += this.getParameterDescription(pp.description, pp.defaultValue);
+                }
+
+                ret += pp.name;
+                ret += pp.optional ? "?: " : ": ";
+                ret += this.getType(pp.type) + ", ";
+            }
+        }
+
+        return ret + "}";
+    }
+
+    private getParameterDescription(description: string, defaultvalue: any): string {
+        return "/*" + description.split("\n").map((value, index, array) => " * " + value).join("\n") + (defaultvalue ? "\n * @default " + defaultvalue.toString() + "\n" : "") + " */\n";
+    }
+
     log(message: string, sourceStack?: string) {
-        if(sourceStack) {
+        if (sourceStack) {
             this.decorated.log("Function '" + this.currentMethod.name + "' -> " + sourceStack, message);
         } else {
             this.decorated.log("Function '" + this.currentMethod.name + "'", message);

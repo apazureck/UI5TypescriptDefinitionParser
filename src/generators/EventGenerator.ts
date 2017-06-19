@@ -1,14 +1,14 @@
-import { Config, Parameter } from './UI5DocumentationTypes';
-import { GeneratorBase, ILogDecorator } from './GeneratorBase';
-import * as types from './UI5DocumentationTypes';
+import { GeneratorBase } from './GeneratorBase';
+import { IConfig, ILogDecorator } from '../types';
+import { IEvent, IParameter, IParameterProperty } from '../UI5DocumentationTypes';
 export class EventGenerator extends GeneratorBase {
-    currentEvent: types.Event;
-    constructor(config: Config, addImport: (type: string) => void, private decorated: ILogDecorator) {
+    currentEvent: IEvent;
+    constructor(config: IConfig, addImport: (type: string) => void, private decorated: ILogDecorator) {
         super(config);
         this.onAddImport = addImport;
     }
 
-    public createEventString(event: types.Event): { method: string, additionalTypes: string[] } {
+    public createEventString(event: IEvent): { method: string, additionalTypes: string[] } {
         this.currentEvent = event;
         let ret = {
             method: "",
@@ -26,7 +26,7 @@ export class EventGenerator extends GeneratorBase {
         return ret;
     }
 
-    private createDescription(description: string, parameters?: Parameter[]): string {
+    private createDescription(description: string, parameters?: IParameter[]): string {
         let ret = "";
         if (description) {
             ret = this.styleJsDoc(description) + "\n";
@@ -34,7 +34,7 @@ export class EventGenerator extends GeneratorBase {
 
         if (parameters) {
             for (const param of parameters) {
-                ret += `@param {${this.getType(param.type)}} ${param.optional ? "[" : ""}${param.name}${param.optional ? "]" : ""} ${param.description}\n`
+                ret += `@param {${this.getType(param.type)}} ${param.optional ? "[" : ""}${param.name}${param.optional ? "]" : ""} ${param.description}\n`;
             }
         }
 

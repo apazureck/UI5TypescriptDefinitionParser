@@ -1,27 +1,31 @@
 import { GeneratorBase } from './GeneratorBase';
-import { Config, Symbol } from './UI5DocumentationTypes';
+import { ISymbol } from '../UI5DocumentationTypes';
+import { IConfig, ILogDecorator } from '../types';
 
 export class EnumGenerator extends GeneratorBase {
-    constructor(config: Config) {
+
+    private currentEnum: string;
+    constructor(config: IConfig, private decorated: ILogDecorator) {
         super(config);
     }
 
-    getEnum(symbol: Symbol): string {
+    getEnum(symbol: ISymbol): string {
         let ret = "";
         let enumpath = symbol.name.split(".");
-        const enumname = enumpath.pop();
+        this.currentEnum = enumpath.pop();
+
         const enumns = enumpath.join(".");
         ret += "declare namespace " + enumns + "{\n";
 
         // Create enum typedef
-        let enumtypedef = "export type " + enumname + " = ";
+        let enumtypedef = "export type " + this.currentEnum + " = ";
         if (symbol.properties) {
             const types = symbol.properties.map((value, index, array) => {
                 return "\"" + (value as any).name + "\"";
             });
             enumtypedef += types.join(" | ") + ";\n";
         } else {
-            console.error("Error in Documentation. No properties for enum '" + symbol.name+ "'");
+            this.log("Error in Documentation. No properties for enum '" + symbol.name+ "'");
             enumtypedef += "any";
         }
 
@@ -36,5 +40,13 @@ export class EnumGenerator extends GeneratorBase {
     private getDescription(description: string): string {
         description = this.styleJsDoc(description);
         return this.makeComment(description);
+    }
+
+    log(message: string, sourceStack?: string) {
+        if(sourceStack) {
+            this.decorated.log("Enum '" + this.currentEnum + "' -> " + sourceStack, message);
+        } else {
+            this.decorated.log("Enum '" + this.currentEnum + "'", message);
+        }
     }
 }

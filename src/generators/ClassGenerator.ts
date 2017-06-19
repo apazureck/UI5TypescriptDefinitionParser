@@ -1,28 +1,24 @@
 import { MethodGenerator } from './MethodGenerator';
 import { EventGenerator } from './EventGenerator';
-import { GeneratorBase, ILogDecorator } from './GeneratorBase';
-import { ADDRGETNETWORKPARAMS } from 'dns';
+import { GeneratorBase } from './GeneratorBase';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Config, Method, Parameter, ReturnValue, Symbol } from './UI5DocumentationTypes';
-import * as types from './UI5DocumentationTypes';
+import { IMethod, IParameter, IReturnValue, ISymbol, IEvent } from '../UI5DocumentationTypes';
+import { IConfig, IDictionary, ILogDecorator } from '../types';
 
-interface Dictionary {
-    [key: string]: string;
-}
 export class ClassGenerator extends GeneratorBase {
-    
-    private imports: Dictionary;
 
-    private currentClass: Symbol;
+    private imports: IDictionary;
+
+    private currentClass: ISymbol;
     /**
      *
      */
-    constructor(private classTemplate: string, private outfolder: string, config: Config, private decorated: ILogDecorator) {
-        super(config)
+    constructor(private classTemplate: string, config: IConfig, private decorated: ILogDecorator) {
+        super(config);
     }
 
-    createClass(sClass: Symbol): string {
+    createClass(sClass: ISymbol): string {
         this.currentClass = sClass;
         this.imports = {};
         let ct = this.classTemplate.toString();
@@ -34,6 +30,8 @@ export class ClassGenerator extends GeneratorBase {
         if (sClass.extends) {
             ct = ct.replace("/*$$extends$$*/", "extends " + sClass.extends.split(".").pop());
             this.addImport(sClass.extends)
+        } else {
+            ct = ct.replace("/*$$extends$$*/", "");
         }
         // 3. Paste description
         ct = ct.replace("/*$$description$$*/", this.createDescription(sClass.description));
@@ -52,25 +50,30 @@ export class ClassGenerator extends GeneratorBase {
         if (sClass.methods) {
             const mc = new MethodGenerator(this.config, this.addImport.bind(this), this);
             ct = ct.replace("/*$$methods$$*/", this.addTabs(sClass.methods.map((value, index, array) => {
-                return mc.createMethodString(value).method;
+                return mc.createMethodString(value);
             }).join("\n"), 2));
         } else {
             ct = ct.replace("/*$$methods$$*/", "");
         }
 
         // 6. Create Constructor
-        if(sClass.constructor) {
-            sClass.constructor.name = "constructor";
-            sClass.constructor.visibility = "public";
-            const mc = new MethodGenerator(this.config, this.addImport.bind(this), this);
-            let ctors = mc.createMethodString(sClass.constructor).method;
-            if(sClass.constructor.parameters && sClass.constructor.parameters[0].name === "sId" && sClass.constructor.parameters[0].optional === true) {
-                let noIdCtor = sClass.constructor;
-                noIdCtor.parameters.shift();
-                ctors += "\n" + mc.createMethodString(sClass.constructor).method;
+        try {
+            if (sClass.constructor) {
+                sClass.constructor.name = "constructor";
+                sClass.constructor.visibility = "public";
+                const mc = new MethodGenerator(this.config, this.addImport.bind(this), this);
+                let ctors = mc.createMethodString(sClass.constructor);
+                if (sClass.constructor.parameters && sClass.constructor.parameters[0].name === "sId" && sClass.constructor.parameters[0].optional === true) {
+                    let noIdCtor = sClass.constructor;
+                    noIdCtor.parameters.shift();
+                    ctors += "\n" + mc.createMethodString(sClass.constructor);
+                }
+                ct = ct.replace("/*$$ctors$$*/", this.addTabs(ctors, 2));
+            } else {
+                ct = ct.replace("/*$$ctors$$*/", "");
             }
-            ct = ct.replace("/*$$ctors$$*/", this.addTabs(ctors, 2));
-        } else {
+        } catch (error) {
+            // Caught, as always a constructor is given.
             ct = ct.replace("/*$$ctors$$*/", "");
         }
 
@@ -83,7 +86,9 @@ export class ClassGenerator extends GeneratorBase {
     }
 
     private createDescription(description: string): string {
-
+        if(!description) {
+            return "";
+        }
         let ret = "/**\n";
 
         if (description) {
@@ -103,6 +108,9 @@ export class ClassGenerator extends GeneratorBase {
      * @memberof ClassGenerator
      */
     onAddImport = (fullTypeName: string) => {
+        if(!fullTypeName) {
+            return;
+        }
         const typename = fullTypeName.split(this.typeSeparators).pop();
         if (!this.imports[typename]) {
             this.imports[typename] = `import { ${typename} } from '${fullTypeName.replace(/\./g, "/")}'`;
@@ -120,7 +128,7 @@ export class ClassGenerator extends GeneratorBase {
     }
 
     log(message: string, sourceStack?: string) {
-        if(sourceStack) {
+        if (sourceStack) {
             this.decorated.log("Class '" + this.currentClass.basename + "' -> " + sourceStack, message);
         } else {
             this.decorated.log("Class '" + this.currentClass.basename + "'", message);

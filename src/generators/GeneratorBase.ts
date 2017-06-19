@@ -1,8 +1,4 @@
-import { Config } from './UI5DocumentationTypes';
-
-export interface ILogDecorator {
-    log(message: string, sourceStack?: string): void;
-}
+import { IConfig, ILogDecorator } from '../types';
 
 export abstract class GeneratorBase implements ILogDecorator {
 
@@ -15,7 +11,7 @@ export abstract class GeneratorBase implements ILogDecorator {
         "boolean": "boolean"
     }
 
-    constructor(protected readonly config: Config) {
+    constructor(protected readonly config: IConfig) {
 
     }
     protected addTabs(input: string, tabsct: number, separator?: string): string {
@@ -43,12 +39,12 @@ export abstract class GeneratorBase implements ILogDecorator {
 
             if (this.config.substitutedTypes.hasOwnProperty(type)) {
                 const oldtype = type;
-                
-                this.log("Replaced: Type '" + oldtype + "' => Type '" + type + "'");
 
                 // Check if class is namespaced
                 if(!type.match(/\./)) {
-                    ret.push(this.config.substitutedTypes[type]);
+                    type = this.config.substitutedTypes[type];
+                    ret.push(type);
+                    this.log("Replaced: Type '" + oldtype + "' => Type '" + type + "'");
                     continue;
                 }
             }

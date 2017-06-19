@@ -1,20 +1,7 @@
-export interface Config {
-    connection: {
-        root: string;
-        endpoints: string[];
-    },
-    substitutedTypes: {
-        [key: string]: string;
-    },
-    enums: {
-        [key: string]: string;
-    }
-}
-
-export interface Api {
+export interface IApi {
     version: string;
     library: string;
-    symbols: Symbol[];
+    symbols: ISymbol[];
 }
 
 export type Kind = "namespace" | "class" | "enum" | "interface";
@@ -22,7 +9,7 @@ export type Visibility = "public" | "protected" | "private";
 
 export type StaticType = "string"
 
-export interface Symbol {
+export interface ISymbol {
     kind: Kind;
     name: string;
     basename: string;
@@ -34,50 +21,50 @@ export interface Symbol {
     description: string;
     extends?: string;
     ui5metadata?: {};
-    "constructor"?: Method;
+    "constructor"?: IMethod;
     properties?: {}[];
-    methods?: Method[];
-    events?: Event[];
+    methods?: IMethod[];
+    events?: IEvent[];
 }
 
-export interface Method {
+export interface IMethod {
     name: string;
     visibility: Visibility;
     description: string;
-    parameters?: Parameter[];
-    returnValue?: ReturnValue;
+    parameters?: IParameter[];
+    returnValue?: IReturnValue;
+    static?: boolean
 }
 
-export interface ReturnValue {
+export interface IReturnValue {
     type: string;
     description?: string;
 }
 
-export interface Event {
+export interface IEvent {
     name: string;
     visibility: Visibility;
     description: string;
-    parameters: EventParameter[];
+    parameters: IParameter[];
 }
 
-export interface EventParameter extends Parameter {
-    parameterProperties: { [key: string]: EventParameterProperty[] };
-}
-
-export interface Parameter {
+export interface IParameter {
     name: string;
     type: string;
     description?: string;
     optional?: boolean;
+    parameterProperties: IParameterProperty[];
 }
 
-export interface EventParameterProperty {
+export interface IParameterProperty {
     name: string;
     type: string;
     optional: boolean;
+    defaultValue: any;
+    description: string;
 }
 
-export interface Enum {
+export interface IEnum {
     kind: string;
     name: string;
     resource: string;
@@ -86,10 +73,10 @@ export interface Enum {
     static: boolean;
     visibility: Visibility;
     description: string;
-    properties: EnumProperty[]
+    properties: IEnumProperty[]
 }
 
-export interface EnumProperty {
+export interface IEnumProperty {
     name: string;
     visibility: Visibility;
     static: boolean;

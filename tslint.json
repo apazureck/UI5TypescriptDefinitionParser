@@ -5,7 +5,7 @@
 		"no-unused-variable": true,
 		"curly": true,
 		"class-name": true,
-		"semicolon": ["always"],
+		"semicolon": [true, "always"],
 		"triple-equals": true,
 		"array-type": [
 			"array"
@@ -14,6 +14,7 @@
 		"forin": true,
 		"jsdoc-format": true,
 		"max-classes-per-file": [
+			true,
 			1
 		],
 		"no-internal-module": true,
@@ -23,10 +24,17 @@
 		"no-for-in-array": true,
 		"adjacent-overload-signatures": false,
 		"align": [
-			true
+			true,
+			"arguments",
+			"parameters",
+			"statements"
 		],
 		"quotemark": [
 			"single"
+		],
+		"interface-name": [
+			true,
+			"always-prefix"
 		]
 	}
 }

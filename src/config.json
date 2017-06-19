@@ -102,7 +102,8 @@
         "TouchList": "any",
         "true": "boolean",
         "undefined": "any",
-        "Window": "any"
+        "Window": "any",
+        "{type:string,index:int}": "{type:string,index:number}"
     },
     "enums": {}
 }
