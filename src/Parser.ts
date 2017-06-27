@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as ncp from 'ncp';
 import * as path from 'path';
 import { RestClient } from 'typed-rest-client/RestClient';
+import * as mkdirp from "mkdirp";
 
 /**
  * 
@@ -33,7 +34,7 @@ export class Parser implements ILogDecorator {
     }
     GenerateDeclarations(outfolder: string): void {
         this.outfolder = outfolder;
-        let info = { generatedClasses: 0 }
+        let info = { generatedClasses: 0 };
         if (this.config.connection.root.match(/^file:\/\/\//)) {
             // for (const endpoint of this.config.connection.endpoints) {
             //     const content = fs.readFileSync(path.join(this.config.connection.root.replace(/^file:\/\/\//, ""), endpoint), 'utf-8');
@@ -59,7 +60,7 @@ export class Parser implements ILogDecorator {
         this.observedAPIs[endpoint] = {
             loaded: true,
             api: api
-        }
+        };
 
         let run = true;
         for (const ep in this.observedAPIs) {
@@ -92,14 +93,53 @@ export class Parser implements ILogDecorator {
             }
         }
 
+        for (const c of this.allClasses) {
+            if (c.extendedClass) {
+                const classmodulename = c.extendedClass.replace(/\./g, "/");
+                try {
+                    c.baseclass = this.allClasses.filter((value, index, array) => value.moduleName === classmodulename).pop();
+                } catch (error) {
+                    console.log("Could not find baseclass for " + c.name);
+                }
+            }
+        }
+
+        this.CreateClassOverloads();
+
         this.generateSubbedTypeFile("substituted.d.ts");
+
+        for (const c of this.allClasses) {
+            const filepath = path.join(this.outfolder, "classes", c.moduleName + ".d.ts");
+            this.log("Creating class " + filepath);
+            mkdirp(path.dirname(filepath), (err, made) => {
+                if (err) {
+                    console.error("Error creating folder for file " + filepath + ": " + err.toString());
+                    return;
+                }
+                try {
+                    fs.writeFileSync(filepath, c.toString(), { encoding: 'utf-8' });
+                } catch (error) {
+                    console.error("Error writing file " + filepath + ": " + error.toString());
+                }
+            })
+
+        }
+
 
         this.replaceFiles("replacements", this.outfolder);
     }
 
+    private CreateClassOverloads() {
+        this.log("Pushing overloads for classes.");
+        const baseclasses = this.allClasses.filter((value, index, array) => !value.baseclass);
+        for (const bc of baseclasses) {
+            bc.pushOverloads();
+        }
+    }
+
     private replaceFiles(sourcePath: string, outPath: string) {
         ncp.ncp(sourcePath, outPath, (error) => {
-            if(error){
+            if (error) {
                 console.error("Could not copy: " + error.toString());
             }
         });
@@ -111,8 +151,8 @@ export class Parser implements ILogDecorator {
 
     private getSubstitutedTypes(): string {
         let types: string[] = [];
-        for(const tkey in this.config.substitutedTypes) {
-            if(tkey) {
+        for (const tkey in this.config.substitutedTypes) {
+            if (tkey) {
                 types.push(this.config.substitutedTypes[tkey]);
             }
         }
@@ -121,7 +161,7 @@ export class Parser implements ILogDecorator {
 
     private getEnums(api: IApi): { generatedEnumCount: number } {
         this.currentApi = api;
-        let info = { generatedEnumCount: 0 }
+        let info = { generatedEnumCount: 0 };
         const enumGen = new EnumGenerator(this.config, this);
         if (!fs.existsSync(this.outfolder)) {
             fs.mkdirSync(this.outfolder);
@@ -149,7 +189,7 @@ export class Parser implements ILogDecorator {
 
     private getClasses(api: IApi): { generatedClassCount: number } {
         this.currentApi = api;
-        let info = { generatedClassCount: 0 }
+        let info = { generatedClassCount: 0 };
         const classTemplate = fs.readFileSync("classModule.d.ts", 'utf8');
 
         if (!fs.existsSync(this.outfolder)) {
@@ -186,7 +226,7 @@ export class Parser implements ILogDecorator {
     }
     private getNamespaces(api: IApi): { generatedNamespaceCount: number } {
         this.currentApi = api;
-        let info = { generatedNamespaceCount: 0 }
+        let info = { generatedNamespaceCount: 0 };
         const namespaceGen = new NamespaceGenerator(this.config, this, fs.readFileSync("classModule.d.ts", 'utf8'));
         if (!fs.existsSync(this.outfolder)) {
             fs.mkdirSync(this.outfolder);
@@ -203,8 +243,8 @@ export class Parser implements ILogDecorator {
             const filepath = path.join(this.outfolder, "namespaces", api.library + ".d.ts");
             const ns = namespaceGen.createNamespaces(api);
             fs.writeFileSync(filepath, ns.namespace, { encoding: 'utf-8' });
-            for(let staticClass of ns.staticClasses) {
-                fs.writeFileSync(path.join(this.outfolder, "classes", "static", staticClass.name + ".d.ts"), staticClass.content, {encoding: 'utf-8'});
+            for (let staticClass of ns.staticClasses) {
+                fs.writeFileSync(path.join(this.outfolder, "classes", "static", staticClass.name + ".d.ts"), staticClass.content, { encoding: 'utf-8' });
             }
             this.log("Created namespaces for '" + api.library + "'");
         }

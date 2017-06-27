@@ -98,7 +98,5 @@ export abstract class GeneratorBase implements ILogDecorator {
         return ret + "**/";
     }
 
-    log(message: string, sourceStack?: string) {
-        this.log(sourceStack + ": " + message);
-    }
+    abstract log(message: string, sourceStack?: string);
 }

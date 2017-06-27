@@ -19,11 +19,20 @@ export class ParsedClass extends GeneratorBase {
         return this.documentClass.module;
     }
 
-    baseclass?: ParsedClass;
+    public childClasses: ParsedClass[] = [];
+
+    private _baseclass: ParsedClass;
+    get baseclass(): ParsedClass {
+        return this._baseclass;
+    }
+    set baseclass(value: ParsedClass) {
+        value.childClasses.push(this);
+        this._baseclass = value;
+    }
     get extendedClass(): string {
         return this.documentClass.extends;
     }
-    methods: ParsedMethod[];
+    methods: ParsedMethod[] = [];
     events: ParsedEvent[];
     get description(): string {
         return this.documentClass.description;
@@ -106,7 +115,7 @@ export class ParsedClass extends GeneratorBase {
 
         // 4. Create Events
         if (this.documentClass.events) {
-            this.events = this.documentClass.events.map((value, index, array) => new ParsedEvent(value, this, this.config, this.addImport.bind(this), this));
+            this.events = this.documentClass.events.map((value, index, array) => new ParsedEvent(value, this, this.config, this.onAddImport.bind(this), this));
         } else {
             this.events = [];
         }
@@ -114,7 +123,7 @@ export class ParsedClass extends GeneratorBase {
         // 5. Create methods
         if (this.documentClass.methods) {
             this.documentClass.methods.forEach((value, index, array) => {
-                this.methods.concat(ParsedMethod.createMethodOverloads(value, this.addImport.bind(this), this, this.config, this));
+                this.methods.concat(ParsedMethod.createMethodOverloads(value, this.onAddImport.bind(this), this, this.config, this));
             });
         } else {
             this.methods = [];
@@ -129,7 +138,7 @@ export class ParsedClass extends GeneratorBase {
                     this.documentClass.constructor.parameters[1].type = "I" + this.documentClass.basename + "Settings";
                 }
 
-                this.constructors = ParsedMethod.createMethodOverloads(this.documentClass.constructor, this.addImport.bind(this), this, this.config, this, true);
+                this.constructors = ParsedMethod.createMethodOverloads(this.documentClass.constructor, this.onAddImport.bind(this), this, this.config, this, true);
             }
         } catch (error) {
             // Caught, as always a constructor is given.
@@ -207,5 +216,23 @@ export class ParsedClass extends GeneratorBase {
         ret += this.addTabs(props.join("\n"), 1);
 
         return ret + "\n}";
+    }
+
+    public pushOverloads(): void {
+        this.log("Pushing Overloads")
+        for (const c of this.childClasses) {
+            c.createOverloads();
+            c.pushOverloads();
+        }
+    }
+
+    public createOverloads(): void {
+        this.log("Creating overloads");
+        for (const basemethod of this.baseclass.methods) {
+            if (this.methods.some((value, index, array) => value.name === basemethod.name)) {
+                this.methods.push(basemethod);
+            }
+        }
+        this.methods = this.methods.sort((a, b) => a.name.localeCompare(b.name));
     }
 }

@@ -1,4 +1,3 @@
-import { GeneratorBase } from './generators/GeneratorBase';
 import { ISymbol } from './UI5DocumentationTypes';
 
 export interface IConfig {

@@ -26,9 +26,9 @@ export class ParsedMethod extends GeneratorBase {
 
     returntype: IReturnValue;
 
-    constructor(private wrappedMethod: IMethod, addImport: (type: string) => void, private decorated: ILogDecorator, config: IConfig, private owner: ParsedClass | ParsedNamespace, private suppressReturnValue?: boolean) {
+    constructor(private wrappedMethod: IMethod, onAddImport: (type: string) => void, private decorated: ILogDecorator, config: IConfig, private owner: ParsedClass | ParsedNamespace, private suppressReturnValue?: boolean) {
         super(config);
-
+        this.onAddImport = onAddImport;
         this.createMethodStub(suppressReturnValue);
     }
     private createDescription(description: string, parameters?: ParsedParameter[], returnValue?: IReturnValue): string {
@@ -50,7 +50,7 @@ export class ParsedMethod extends GeneratorBase {
         return this.makeComment(ret);
     }
 
-    public static createMethodOverloads(method: IMethod, addImport: (type: string) => void, decorated: ILogDecorator, config: IConfig, owner: ParsedClass | ParsedNamespace, suppressReturnValue?: boolean): ParsedMethod[] {
+    public static createMethodOverloads(method: IMethod, onAddImport: (type: string) => void, decorated: ILogDecorator, config: IConfig, owner: ParsedClass | ParsedNamespace, suppressReturnValue?: boolean): ParsedMethod[] {
         if (method.parameters && method.parameters.length > 1) {
             let overloads: ParsedMethod[] = [];
             let optionalMap = method.parameters.map((value) => value.optional || false);
@@ -67,7 +67,7 @@ export class ParsedMethod extends GeneratorBase {
                     }
                     // remove optional parameter and create method stub
                     let save = method.parameters.splice(firstOptionalIndex, 1).pop();
-                    overloads.push(new ParsedMethod(method, addImport, decorated, config, owner, suppressReturnValue));
+                    overloads.push(new ParsedMethod(method, onAddImport, decorated, config, owner, suppressReturnValue));
                     method.parameters.splice(firstOptionalIndex, 0, save);
 
                     // Reset method parameters array
@@ -80,12 +80,12 @@ export class ParsedMethod extends GeneratorBase {
                     // Reevaluate optional map
                     optionalMap = method.parameters.map((value) => value.optional || false);
                 } else {
-                    overloads.push(new ParsedMethod(method, addImport, decorated, config, owner, suppressReturnValue));
+                    overloads.push(new ParsedMethod(method, onAddImport, decorated, config, owner, suppressReturnValue));
                 }
             } while (lastMandatoryIndex !== -1 && firstOptionalIndex !== -1 && firstOptionalIndex < lastMandatoryIndex);
             return overloads;
         } else {
-            return [new ParsedMethod(method, addImport, decorated, config, owner)];
+            return [new ParsedMethod(method, onAddImport, decorated, config, owner)];
         }
     }
 
@@ -94,10 +94,12 @@ export class ParsedMethod extends GeneratorBase {
 
         if (this.wrappedMethod.visibility as any === "restricted") {
             this.visibility = "private";
+        } else {
+            this.visibility = this.wrappedMethod.visibility;
         }
 
         if (this.wrappedMethod.parameters) {
-            this.parameters = this.wrappedMethod.parameters.map<ParsedParameter>((value, index, array) => new ParsedParameter(value, (this.owner as ParsedClass).name, this.addImport, this.config));
+            this.parameters = this.wrappedMethod.parameters.map<ParsedParameter>((value, index, array) => new ParsedParameter(value, (this.owner as ParsedClass).name, this.onAddImport, this.config, this));
         }
 
         if (suppressReturnValue) {

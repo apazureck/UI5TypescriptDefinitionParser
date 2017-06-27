@@ -1,11 +1,11 @@
-import { IConfig } from '../../../out/types';
+import { IConfig, ILogDecorator } from '../../../out/types';
 import { IParameter, IParameterProperty } from '../../UI5DocumentationTypes';
 import { GeneratorBase } from '../GeneratorBase';
 
 export class ParsedParameter extends GeneratorBase {
     private customType = false;
     private hasCustomEventHandler = false;
-    constructor(private param: IParameter, className: string, addImport: (type: string) => void, config: IConfig) {
+    constructor(private param: IParameter, className: string, addImport: (type: string) => void, config: IConfig, private decorated: ILogDecorator) {
         super(config);
         this.onAddImport = addImport;
         if (param.type === "sap.ui.base.Event") {
@@ -70,5 +70,13 @@ export class ParsedParameter extends GeneratorBase {
 
     toString(): string {
         return this.name + (this.optional ? "?" : "") + ": " + this.type;
+    }
+
+    log(message: string, sourceStack?: string) {
+        if (sourceStack) {
+            this.decorated.log("Parameter '" + this.name + "' -> " + sourceStack, message);
+        } else {
+            this.decorated.log("Parameter '" + this.name + "'", message);
+        }
     }
 }

@@ -1,8 +1,6 @@
 import { GeneratorBase } from './GeneratorBase';
-import { MethodGenerator } from './MethodGenerator';
 import { IConfig, IDictionary, ILogDecorator } from '../types';
 import { IApi, IMethod, IParameter, IReturnValue, ISymbol } from '../UI5DocumentationTypes';
-import { ClassGenerator } from './ClassGenerator';
 
 export class NamespaceGenerator extends GeneratorBase {
     private currentNamespace: ISymbol;
@@ -45,19 +43,19 @@ export class NamespaceGenerator extends GeneratorBase {
 
         if (namespace.methods) {
             // If methods are static it is a static class
-            if (namespace.methods[0].static) {
-                let cg = new ClassGenerator(this.classTemplate, this.config, this);
-                return { content: cg.createClass(namespace), isStaticClass: true };
-            }
-            let mg = new MethodGenerator(this.config, this.addImport.bind(this), this);
-            for (const method of namespace.methods) {
-                if (method.visibility === "public") {
-                    methods = methods.concat(mg.createMethodStubs(method));
-                }
-            }
-            for (const method of methods) {
-                method.method = "export function " + method.method;
-            }
+            // if (namespace.methods[0].static) {
+            //     let cg = new ClassGenerator(this.classTemplate, this.config, this);
+            //     return { content: cg.createClass(namespace), isStaticClass: true };
+            // }
+            // let mg = new MethodGenerator(this.config, this.addImport.bind(this), this);
+            // for (const method of namespace.methods) {
+            //     if (method.visibility === "public") {
+            //         methods = methods.concat(mg.createMethodStubs(method));
+            //     }
+            // }
+            // for (const method of methods) {
+            //     method.method = "export function " + method.method;
+            // }
         }
         
         if (methods.length > 0) {
