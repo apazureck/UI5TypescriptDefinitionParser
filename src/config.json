@@ -15,7 +15,7 @@
             "sap/uxap/designtime/api.json"
         ]
     },
-    "substitutedTypes": {
+    "typeMap": {
         "*": "any",
         "any[]": "any[]",
         "array": "any[]",
@@ -105,5 +105,10 @@
         "Window": "any",
         "{type:string,index:int}": "{type:string,index:number}"
     },
-    "enums": {}
+    "enums": {},
+    "substitutedTypes": {
+        "sap.ui.core.CSSSize": "declare namespace sap.ui.core {\n\texport type CSSSize = string;\n}",
+        "sap.ui.core.ID": "declare namespace sap.ui.core {\n\texport type ID = string;\n}",
+        "sap.ui.core.URI": "declare namespace sap.ui.core {\n\texport type URI = string;\n}"
+    }
 }

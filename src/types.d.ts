@@ -1,12 +1,43 @@
+import { GeneratorBase } from './generators/GeneratorBase';
+import { ISymbol } from './UI5DocumentationTypes';
+
 export interface IConfig {
     connection: {
         root: string;
         endpoints: string[];
     },
-    substitutedTypes: {
+    /**
+     * Maps given types from the documentation to a custom given type
+     * 
+     * @type {{
+     *         [key: string]: string;
+     *     }}
+     * @memberof IConfig
+     */
+    typeMap: {
         [key: string]: string;
     },
+    /**
+     * Found Enums in the namespaces
+     * 
+     * @type {{
+     *         [key: string]: string;
+     *     }}
+     * @memberof IConfig
+     */
     enums: {
+        [key: string]: string;
+    }
+
+    /**
+     * Types given here will be overridden completele. That means no class, namespace or enum will be generated. The types will not be referenced as modules, etc.
+     * 
+     * @type {{
+     *         [key: string]: string;
+     *     }}
+     * @memberof IConfig
+     */
+    substitutedTypes: {
         [key: string]: string;
     }
 }
@@ -17,4 +48,9 @@ export interface IDictionary {
 
 export interface ILogDecorator {
     log(message: string, sourceStack?: string): void;
+}
+
+export interface IImport {
+    module: string;
+    name: string;
 }

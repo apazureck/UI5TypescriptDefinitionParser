@@ -2,14 +2,14 @@ import { IConfig, ILogDecorator } from '../types';
 
 export abstract class GeneratorBase implements ILogDecorator {
 
-    protected readonly typeSeparators = /[\.\/]/g
+    protected readonly typeSeparators = /[\.\/]/g;
     protected readonly tsBaseTypes = {
         "any": "any",
         "number": "number",
         "void": "void",
         "string": "string",
         "boolean": "boolean"
-    }
+    };
 
     constructor(protected readonly config: IConfig) {
 
@@ -37,12 +37,12 @@ export abstract class GeneratorBase implements ILogDecorator {
                 type = type.replace(/\[\]$/, "");
             }
 
-            if (this.config.substitutedTypes.hasOwnProperty(type)) {
+            if (this.config.typeMap.hasOwnProperty(type)) {
                 const oldtype = type;
 
                 // Check if class is namespaced
                 if(!type.match(/\./)) {
-                    type = this.config.substitutedTypes[type];
+                    type = this.config.typeMap[type];
                     ret.push(type);
                     this.log("Replaced: Type '" + oldtype + "' => Type '" + type + "'");
                     continue;
@@ -59,19 +59,33 @@ export abstract class GeneratorBase implements ILogDecorator {
                 continue;
             }
 
+            if(this.config.substitutedTypes.hasOwnProperty(type)) {
+                ret.push(isArray ? type + "[]" : type);
+                continue;
+            }
+
             this.addImport(type);
             ret.push(isArray ? type.split(this.typeSeparators).pop() + "[]" : type.split(this.typeSeparators).pop());
         }
         return ret.join("|");
     }
 
-    protected addImport(type: string) {
+    /**
+     * Calls the onAddImport Callback
+     * 
+     * @protected
+     * @param {string} module Module to import from
+     * @param {string} [type] type to import
+     * 
+     * @memberof GeneratorBase
+     */
+    protected addImport(module: string, type?: string) {
         if (this.onAddImport) {
-            this.onAddImport(type);
+            this.onAddImport(module, type);
         }
     }
 
-    protected onAddImport: (type: string) => void;
+    protected onAddImport: (module: string, type?:string) => void;
 
     protected makeComment(description: string): string {
         if(!description) {

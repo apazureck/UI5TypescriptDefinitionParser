@@ -1,9 +1,10 @@
 import { IApi } from './UI5DocumentationTypes';
-import { ClassGenerator } from './generators/ClassGenerator';
+import { ParsedClass } from './generators/entities/ParsedClass';
 import { EnumGenerator } from './generators/EnumGenerator';
 import { NamespaceGenerator } from './generators/NamespaceGenerator';
 import { IConfig, ILogDecorator } from './types';
 import * as fs from 'fs';
+import * as ncp from 'ncp';
 import * as path from 'path';
 import { RestClient } from 'typed-rest-client/RestClient';
 
@@ -91,8 +92,31 @@ export class Parser implements ILogDecorator {
             }
         }
 
-        for (const endpoint in this.observedAPIs) {
+        this.generateSubbedTypeFile("substituted.d.ts");
+
+        this.replaceFiles("replacements", this.outfolder);
+    }
+
+    private replaceFiles(sourcePath: string, outPath: string) {
+        ncp.ncp(sourcePath, outPath, (error) => {
+            if(error){
+                console.error("Could not copy: " + error.toString());
+            }
+        });
+    }
+
+    private generateSubbedTypeFile(filename: string): void {
+        fs.writeFileSync(path.join(this.outfolder, filename), this.getSubstitutedTypes(), 'utf-8');
+    }
+
+    private getSubstitutedTypes(): string {
+        let types: string[] = [];
+        for(const tkey in this.config.substitutedTypes) {
+            if(tkey) {
+                types.push(this.config.substitutedTypes[tkey]);
+            }
         }
+        return types.join("\n");
     }
 
     private getEnums(api: IApi): { generatedEnumCount: number } {
@@ -121,10 +145,13 @@ export class Parser implements ILogDecorator {
         return info;
     }
 
+    private allClasses: ParsedClass[] = [];
+
     private getClasses(api: IApi): { generatedClassCount: number } {
         this.currentApi = api;
         let info = { generatedClassCount: 0 }
-        const classgen = new ClassGenerator(fs.readFileSync("classModule.d.ts", 'utf8'), this.config, this);
+        const classTemplate = fs.readFileSync("classModule.d.ts", 'utf8');
+
         if (!fs.existsSync(this.outfolder)) {
             fs.mkdirSync(this.outfolder);
         }
@@ -137,11 +164,11 @@ export class Parser implements ILogDecorator {
                     case "enum":
                         break;
                     case "class":
-                        const cstring = classgen.createClass(s);
+                        this.allClasses.push(new ParsedClass(s, classTemplate, this.config, this));
                         // Write to file
                         // TODO: Create folder structure
-                        fs.writeFileSync(path.join(this.outfolder, "classes", s.name + ".d.ts"), cstring, 'utf-8');
-                        this.log("Created Declaration for class '" + s.name + "'");
+                        // fs.writeFileSync(path.join(this.outfolder, "classes", s.name + ".d.ts"), cstring, 'utf-8');
+                        // this.log("Created Declaration for class '" + s.name + "'");
                         info.generatedClassCount++;
                         break;
                     case "namespace":

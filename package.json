@@ -24,6 +24,7 @@
   "devDependencies": {
     "@types/gulp": "^4.0.4",
     "@types/gulp-util": "^3.0.31",
+    "@types/ncp": "^2.0.0",
     "@types/node": "^7.0.31",
     "del": "^3.0.0",
     "gulp": "^3.9.1",
@@ -32,6 +33,8 @@
   },
   "dependencies": {
     "fs": "0.0.1-security",
+    "ncp": "^2.0.0",
+    "path": "^0.12.7",
     "typed-rest-client": "^0.10.0"
   }
 }
