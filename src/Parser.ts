@@ -1,7 +1,7 @@
 import { IApi } from './UI5DocumentationTypes';
 import { ParsedClass } from './generators/entities/ParsedClass';
+import { ParsedNamespace } from './generators/entities/ParsedNamespace';
 import { EnumGenerator } from './generators/EnumGenerator';
-import { NamespaceGenerator } from './generators/NamespaceGenerator';
 import { IConfig, ILogDecorator } from './types';
 import * as fs from 'fs';
 import * as ncp from 'ncp';
@@ -74,22 +74,22 @@ export class Parser implements ILogDecorator {
         }
     }
 
-    private generate() {
+    private async generate() {
         for (const endpoint in this.observedAPIs) {
             if (endpoint) {
-                this.getEnums(this.observedAPIs[endpoint].api);
+                await this.getEnums(this.observedAPIs[endpoint].api);
             }
         }
 
         for (const endpoint in this.observedAPIs) {
             if (endpoint) {
-                this.getNamespaces(this.observedAPIs[endpoint].api);
+                await this.getNamespaces(this.observedAPIs[endpoint].api);
             }
         }
 
         for (const endpoint in this.observedAPIs) {
             if (endpoint) {
-                this.getClasses(this.observedAPIs[endpoint].api);
+                await this.getClasses(this.observedAPIs[endpoint].api);
             }
         }
 
@@ -97,7 +97,7 @@ export class Parser implements ILogDecorator {
             if (c.extendedClass) {
                 const classmodulename = c.extendedClass.replace(/\./g, "/");
                 try {
-                    c.baseclass = this.allClasses.filter((value, index, array) => value.moduleName === classmodulename).pop();
+                    c.baseclass = this.allClasses.filter((value, index, array) => value.fullName === classmodulename).pop();
                 } catch (error) {
                     console.log("Could not find baseclass for " + c.name);
                 }
@@ -109,24 +109,42 @@ export class Parser implements ILogDecorator {
         this.generateSubbedTypeFile("substituted.d.ts");
 
         for (const c of this.allClasses) {
-            const filepath = path.join(this.outfolder, "classes", c.moduleName + ".d.ts");
+            const filepath = path.join(this.outfolder, "classes", c.fullName + ".d.ts");
             this.log("Creating class " + filepath);
-            mkdirp(path.dirname(filepath), (err, made) => {
-                if (err) {
-                    console.error("Error creating folder for file " + filepath + ": " + err.toString());
-                    return;
-                }
+            try {
+                await MakeDirRecursiveSync(path.dirname(filepath));
                 try {
                     fs.writeFileSync(filepath, c.toString(), { encoding: 'utf-8' });
                 } catch (error) {
                     console.error("Error writing file " + filepath + ": " + error.toString());
                 }
-            })
-
+            } catch (err) {
+                console.error("Error creating folder for file " + filepath + ": " + err.toString());
+            }
         }
 
+        for (const ns of this.allNamespaces) {
+            const filepath = path.join(this.outfolder, "namespaces", ns.name + ".d.ts");
+            this.log("Creating namespace " + filepath);
+            try {
+                const nsstring = ns.toString();
+                if (nsstring) {
+                    await MakeDirRecursiveSync(path.dirname(filepath));
+                    try {
+                        fs.writeFileSync(filepath, ns.toString(), { encoding: "utf-8" });
+                    } catch (error) {
+                        console.error("Error writing file " + filepath + ": " + error.toString());
+                    }
+                }
+
+            } catch (error) {
+                console.error("Error creating folder for file " + filepath + ": " + error.toString());
+            }
+        }
 
         this.replaceFiles("replacements", this.outfolder);
+
+        this.log("Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done");
     }
 
     private CreateClassOverloads() {
@@ -146,7 +164,7 @@ export class Parser implements ILogDecorator {
     }
 
     private generateSubbedTypeFile(filename: string): void {
-        fs.writeFileSync(path.join(this.outfolder, filename), this.getSubstitutedTypes(), 'utf-8');
+        fs.writeFileSync(path.join(this.outfolder, filename), this.getSubstitutedTypes(), { encoding: 'utf-8' });
     }
 
     private getSubstitutedTypes(): string {
@@ -159,17 +177,17 @@ export class Parser implements ILogDecorator {
         return types.join("\n");
     }
 
-    private getEnums(api: IApi): { generatedEnumCount: number } {
+    private async getEnums(api: IApi): Promise<{ generatedEnumCount: number }> {
         this.currentApi = api;
         let info = { generatedEnumCount: 0 };
         const enumGen = new EnumGenerator(this.config, this);
         if (!fs.existsSync(this.outfolder)) {
-            fs.mkdirSync(this.outfolder);
+            await MakeDirRecursiveSync(this.outfolder);
         }
 
         let enums: string[] = [];
         if (!fs.existsSync(path.join(this.outfolder, "enums"))) {
-            fs.mkdirSync(path.join(this.outfolder, "enums"));
+            await MakeDirRecursiveSync(path.join(this.outfolder, "enums"));
         }
         if (api.symbols && api.symbols.length > 0) {
             for (const s of api.symbols) {
@@ -178,7 +196,7 @@ export class Parser implements ILogDecorator {
                 }
             }
             if (enums.length > 0) {
-                fs.writeFileSync(path.join(this.outfolder, "enums", api.library + ".enums.d.ts"), enums.join("\n"), 'utf-8');
+                fs.writeFileSync(path.join(this.outfolder, "enums", api.library + ".enums.d.ts"), enums.join("\n"), { encoding: 'utf-8' });
                 this.log("Created Enums for '" + api.library + "'");
             }
         }
@@ -186,17 +204,18 @@ export class Parser implements ILogDecorator {
     }
 
     private allClasses: ParsedClass[] = [];
+    private allNamespaces: ParsedNamespace[] = [];
 
-    private getClasses(api: IApi): { generatedClassCount: number } {
+    private async getClasses(api: IApi): Promise<{ generatedClassCount: number }> {
         this.currentApi = api;
         let info = { generatedClassCount: 0 };
         const classTemplate = fs.readFileSync("classModule.d.ts", 'utf8');
 
         if (!fs.existsSync(this.outfolder)) {
-            fs.mkdirSync(this.outfolder);
+            await MakeDirRecursiveSync(this.outfolder);
         }
         if (!fs.existsSync(path.join(this.outfolder, "classes"))) {
-            fs.mkdirSync(path.join(this.outfolder, "classes"));
+            await MakeDirRecursiveSync(path.join(this.outfolder, "classes"));
         }
         if (api.symbols && api.symbols.length > 0) {
             for (const s of api.symbols) {
@@ -224,30 +243,44 @@ export class Parser implements ILogDecorator {
         this.log("Created " + info.generatedClassCount + " classes of Library " + api.library);
         return info;
     }
-    private getNamespaces(api: IApi): { generatedNamespaceCount: number } {
+    private async getNamespaces(api: IApi): Promise<{ generatedNamespaceCount: number }> {
         this.currentApi = api;
         let info = { generatedNamespaceCount: 0 };
-        const namespaceGen = new NamespaceGenerator(this.config, this, fs.readFileSync("classModule.d.ts", 'utf8'));
+
         if (!fs.existsSync(this.outfolder)) {
-            fs.mkdirSync(this.outfolder);
+            await MakeDirRecursiveSync(this.outfolder);
         }
         if (!fs.existsSync(path.join(this.outfolder, "namespaces"))) {
-            fs.mkdirSync(path.join(this.outfolder, "namespaces"));
+            await MakeDirRecursiveSync(path.join(this.outfolder, "namespaces"));
         }
 
         if (!fs.existsSync(path.join(this.outfolder, "classes", "static"))) {
-            fs.mkdirSync(path.join(this.outfolder, "classes", "static"));
+            await MakeDirRecursiveSync(path.join(this.outfolder, "classes", "static"));
         }
 
         if (api.symbols && api.symbols.length > 0) {
-            const filepath = path.join(this.outfolder, "namespaces", api.library + ".d.ts");
-            const ns = namespaceGen.createNamespaces(api);
-            fs.writeFileSync(filepath, ns.namespace, { encoding: 'utf-8' });
-            for (let staticClass of ns.staticClasses) {
-                fs.writeFileSync(path.join(this.outfolder, "classes", "static", staticClass.name + ".d.ts"), staticClass.content, { encoding: 'utf-8' });
+            for (const s of api.symbols) {
+                switch (s.kind) {
+                    case "enum":
+                        break;
+                    case "namespace":
+                        this.allNamespaces.push(new ParsedNamespace(s, this.config, this));
+                        // Write to file
+                        // TODO: Create folder structure
+                        // fs.writeFileSync(path.join(this.outfolder, "classes", s.name + ".d.ts"), cstring, 'utf-8');
+                        // this.log("Created Declaration for class '" + s.name + "'");
+                        info.generatedNamespaceCount++;
+                        break;
+                    case "class":
+                        break;
+                    case "interface":
+                        break;
+                    default:
+                        this.log("New Type discovered: " + s.kind);
+                }
             }
-            this.log("Created namespaces for '" + api.library + "'");
         }
+
         return info;
     }
     log(message: string, sourceStack?: string) {
@@ -258,4 +291,16 @@ export class Parser implements ILogDecorator {
             console.log("Library '" + this.currentApi.library + "': " + message);
         }
     }
+}
+
+function MakeDirRecursiveSync(dirpath): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        mkdirp(dirpath, (err, made) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve();
+            }
+        });
+    });
 }

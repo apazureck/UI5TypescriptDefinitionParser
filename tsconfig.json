@@ -4,7 +4,7 @@
         "gulpfile.ts"
     ],
     "compilerOptions": {
-        "target": "es5",
+        "target": "es2015",
         "module": "commonjs",
         "sourceMap": true,
         "moduleResolution": "node",
@@ -13,8 +13,8 @@
     },
     "types": ["node"],
     "exclude": [
-        "out",
-        "test",
-        "src/replacements"
+        "out/**/*",
+        "test/**/*",
+        "src/replacements/**/*"
     ]
 }

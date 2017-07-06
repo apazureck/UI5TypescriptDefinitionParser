@@ -16,6 +16,11 @@ export class ParsedClass extends GeneratorBase {
     }
 
     get moduleName(): string {
+        let moduleparts = this.documentClass.module.split(this.typeSeparators);
+        return this.documentClass.module.split(this.typeSeparators).splice(0, moduleparts.length - 1).join("/");
+    }
+
+    get fullName(): string {
         return this.documentClass.module;
     }
 
@@ -41,6 +46,7 @@ export class ParsedClass extends GeneratorBase {
     private imports: { [key: string]: IImport };
 
     toString(): string {
+        this.log("Creating class string");
         let ct = this.classTemplate.toString();
         // 1. Set Module Name
         ct = ct.replace("classModule", this.moduleName);
@@ -72,7 +78,7 @@ export class ParsedClass extends GeneratorBase {
             ct = ct.replace("/*$$events$$*/", "");
         }
 
-        if (this.events.length > 0) {
+        if (this.methods.length > 0) {
             ct = ct.replace("/*$$methods$$*/", this.addTabs(this.methods.map((value, index, array) => value.toString()).join("\n"), 2));
         } else {
             ct = ct.replace("/*$$methods$$*/", "");
@@ -107,6 +113,7 @@ export class ParsedClass extends GeneratorBase {
     }
 
     private createMissingProperties(): void {
+        this.log("Creating properties, events and methods");
         this.imports = {};
 
         if (this.documentClass.extends) {
@@ -123,7 +130,7 @@ export class ParsedClass extends GeneratorBase {
         // 5. Create methods
         if (this.documentClass.methods) {
             this.documentClass.methods.forEach((value, index, array) => {
-                this.methods.concat(ParsedMethod.createMethodOverloads(value, this.onAddImport.bind(this), this, this.config, this));
+                this.methods = this.methods.concat(ParsedMethod.createMethodOverloads(value, this.onAddImport.bind(this), this, this.config, this));
             });
         } else {
             this.methods = [];
@@ -151,20 +158,25 @@ export class ParsedClass extends GeneratorBase {
             return;
         }
 
+        this.log("Adding import '" + typeOrModule + "'");
+
         if (typeOrModule === "I" + this.name + "Settings") {
             return;
         }
-        const typename = typeOrModule.split(this.typeSeparators).pop();
+
+        const modulename = typeOrModule.split(this.typeSeparators);
+        const typename = modulename.pop();
 
         if (!this.imports[typename]) {
             this.imports[typename] = {
                 name: typename,
-                module: typeOrModule.replace(/\./g, "/"),
+                module: modulename.join("/"),
             };
         }
     }
 
     private createDescription(description: string): string {
+        this.log("Creating description");
         if (!description) {
             return "";
         }
@@ -179,16 +191,30 @@ export class ParsedClass extends GeneratorBase {
     }
 
     private importsToString(): string {
-        let ret = "";
+        this.log("Creating imports and returning import string");
+        const modules: { [module: string]: IImport[] } = {};
+
         for (const i in this.imports) {
             if (this.imports.hasOwnProperty(i)) {
-                ret += this.imports[i] + '\n';
+                const item = this.imports[i];
+                if (modules[item.module]) {
+                    modules[item.module].push(item);
+                } else {
+                    modules[item.module] = [item];
+                }
             }
         }
-        return ret;
+        const ret: string[] = [];
+        for (const m in modules) {
+            if (modules.hasOwnProperty(m)) {
+                ret.push("import { " + modules[m].map(x => x.name).join(",") + " } from \"" + m + "\";");
+            }
+        }
+        return ret.join("\n");
     }
 
     private createSettingsInterface(): string {
+        this.log("Creating settings interface");
         let ret = "export interface I" + this.name + "Settings";
 
         if (this.baseclass) {
@@ -219,7 +245,7 @@ export class ParsedClass extends GeneratorBase {
     }
 
     public pushOverloads(): void {
-        this.log("Pushing Overloads")
+        this.log("Pushing Overloads");
         for (const c of this.childClasses) {
             c.createOverloads();
             c.pushOverloads();

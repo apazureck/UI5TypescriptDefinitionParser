@@ -7,7 +7,7 @@ import { ParsedParameter } from './ParsedParameter';
 
 export class ParsedMethod extends GeneratorBase {
 
-    parameters: ParsedParameter[];
+    parameters: ParsedParameter[] = [];
     stubs: string[];
 
     get name(): string {
@@ -112,11 +112,12 @@ export class ParsedMethod extends GeneratorBase {
         }
     }
 
-    toString(): string {
+    toString(suppressDescription?: boolean): string {
+        suppressDescription = suppressDescription || false;
         this.suppressReturnValue = this.suppressReturnValue || false;
         let ret: string = "";
 
-        if (this.description) {
+        if (this.description && !suppressDescription) {
             ret += this.createDescription(this.description, this.parameters, this.returntype) + "\n";
         }
 
