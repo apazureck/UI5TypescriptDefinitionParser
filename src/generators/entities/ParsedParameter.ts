@@ -1,4 +1,4 @@
-import { IConfig, ILogDecorator } from '../../../out/types';
+import { IConfig, ILogDecorator } from '../../types';
 import { IParameter, IParameterProperty } from '../../UI5DocumentationTypes';
 import { GeneratorBase } from '../GeneratorBase';
 

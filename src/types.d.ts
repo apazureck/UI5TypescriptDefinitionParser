@@ -39,6 +39,7 @@ export interface IConfig {
     substitutedTypes: {
         [key: string]: string;
     }
+    useCache: boolean;
 }
 
 export interface IDictionary {

@@ -20,8 +20,10 @@ export abstract class GeneratorBase implements ILogDecorator {
     }
 
     protected styleJsDoc(text: string): string {
-        // TODO: Remove xml?
-        return text;
+        if(!text)
+            return "";
+        return text.replace(/(<code>|<\/code>)/g, "`")
+        .replace(/(<b>|<\/b>)/g, "**");
     }
 
     protected getType(originType: string): string {
@@ -91,11 +93,11 @@ export abstract class GeneratorBase implements ILogDecorator {
         if(!description) {
             return "";
         }
-        let ret = "/**\n";
+        let ret = "";
         for (const line of description.split("\n")) {
             ret += " * " + line + "\n";
         }
-        return ret + "**/";
+        return ret;
     }
 
     abstract log(message: string, sourceStack?: string);

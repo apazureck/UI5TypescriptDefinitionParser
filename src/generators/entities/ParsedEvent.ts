@@ -3,6 +3,7 @@ import { IEvent, IParameter, IParameterProperty, Visibility } from '../../UI5Doc
 import { GeneratorBase } from '../GeneratorBase';
 import { ParsedClass } from './ParsedClass';
 import { ParsedParameter } from './ParsedParameter';
+import * as Handlebars from 'handlebars';
 
 export class ParsedEvent extends GeneratorBase {
     constructor(private wrappedEvent: IEvent, private ownerClass: ParsedClass, config: IConfig, addImport: (type: string) => void, private decorated: ILogDecorator) {
@@ -32,9 +33,13 @@ export class ParsedEvent extends GeneratorBase {
         if(event.parameters[0].type === "sap.ui.base.Event") {
             this.parameters.push(new ParsedParameter(event.parameters[0], this.name, this.onAddImport, this.config, this));
         } else {
-            event.parameters.forEach((value, index, array) => this.parameters.push(new ParsedParameter(value, this.name, this.onAddImport, this.config, this)));
+            // event.parameters.forEach((value, index, array) => this.parameters.push(new ParsedParameter(value, this.name, this.onAddImport, this.config, this)));
         }
         
+    }
+
+    get asString(): string {
+        return this.toString();
     }
 
     toString(): string {
@@ -43,6 +48,10 @@ export class ParsedEvent extends GeneratorBase {
         ret += this.name + ": (";
         ret += this.parameters.map((value, index, array) => value.toString()).join(", ");
         return ret + ") => void;";
+    }
+
+    public get parsedDescription(): string {
+        return this.createDescription(this.description, this.parameters);
     }
 
     private createDescription(description: string, parameters?: ParsedParameter[]): string {

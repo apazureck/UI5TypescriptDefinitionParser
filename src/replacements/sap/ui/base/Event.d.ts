@@ -7,7 +7,7 @@ declare module 'sap/ui/base/Event' {
 	/**
 	 * An Event object consisting of an id, a source and a map of parameters
 	**/
-	export class Event<Tsource, Tparameters> extends Object {
+	export class Event<Tsource extends EventProvider, Tparameters> extends Object {
 		/**
 		 * Creates an event with the given <code>sId</code>, linked to the provided <code>oSource</code> and enriched with the <code>mParameters</code>.
 		 * @param {string} sId The id of the event
