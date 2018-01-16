@@ -34,34 +34,65 @@ export class Parser implements ILogDecorator {
   GenerateDeclarations(outfolder: string): void {
     this.outfolder = outfolder;
     let info = { generatedClasses: 0 };
+    // Create rest client
     const rc = new RestClient("Agent", this.config.connection.root);
     console.log("Generating Declarations");
+
+    // Check if each endpoint in the config is cached (if cache enabled), otherwise add it to the request list
     for (const endpoint of this.config.connection.endpoints) {
-      const cachefile = path.join(
-        "apis",
-        endpoint.replace(/\//g, ".") + ".json"
-      );
-      if (this.config.useCache) {
+      const cachefile = path.join("apis", endpoint.replace(/\//g, "."));
+
+      if (this.config.cacheApis) {
         console.log("Using cache, Looking for cache file " + cachefile);
         if (fs.existsSync(cachefile)) {
-          this.receivedAPI(
-            endpoint,
-            JSON.parse(fs.readFileSync(cachefile, "utf-8"))
-          );
+          this.observedAPIs[endpoint] = {
+            loaded: true,
+            
+            api: JSON.parse(fs.readFileSync(cachefile, "utf-8"))
+          };
           continue;
         } else {
-            this.log("No cached file found, requesting from " + this.config.connection.root);
+          console.log(
+            "No cached file found, requesting from " +
+              this.config.connection.root
+          );
+          this.observedAPIs[endpoint] = {
+            loaded: false
+          };
         }
+      } else {
+        this.observedAPIs[endpoint] = {
+          loaded: false
+        };
       }
-      this.observedAPIs[endpoint] = {
-        loaded: false
-      };
-      for (const endpoint of this.config.connection.endpoints) {
+    }
+
+    // Request all not cached/loaded enpoints
+    for (const endpoint of this.config.connection.endpoints) {
+      if (!this.observedAPIs[endpoint].loaded) {
         rc.get(this.config.connection.root + "/" + endpoint).then(
           (value => {
             this.receivedAPI(endpoint, value.result);
           }).bind(this)
         );
+      }
+    }
+
+    // Wait for apis to come in
+    let wait = true;
+    while (wait) {
+      let run = true;
+      for (const ep in this.observedAPIs) {
+        if (this.observedAPIs[ep].loaded === false) {
+          run = false;
+          break;
+        }
+      }
+
+      // if all observed apis are loaded create 
+      if (run) {
+        this.generate();
+        wait = false;
       }
     }
   }
@@ -72,29 +103,16 @@ export class Parser implements ILogDecorator {
       api: api
     };
 
-    let run = true;
-    for (const ep in this.observedAPIs) {
-      if (this.observedAPIs[ep].loaded === false) {
-        run = false;
-        break;
-      }
-    }
-    if (run) {
-      // cache apis
-      if (this.config.useCache) {
-        MakeDirRecursiveSync(path.join("apis"));
-        for (const sapi in this.observedAPIs) {
-          const filename = path.join(
-            "apis",
-            sapi.replace(/\//g, ".") + ".json"
-          );
-          if (sapi && !fs.existsSync(filename)) {
-            const api = this.observedAPIs[sapi];
-            fs.writeFileSync(filename, JSON.stringify(api.api), "utf-8");
-          }
+    // cache apis if useCache is active
+    if (this.config.cacheApis) {
+      MakeDirRecursiveSync(path.join("apis"));
+      for (const sapi in this.observedAPIs) {
+        const filename = path.join("apis", sapi.replace(/\//g, "."));
+        if (sapi && !fs.existsSync(filename)) {
+          const api = this.observedAPIs[sapi];
+          fs.writeFileSync(filename, JSON.stringify(api.api), "utf-8");
         }
       }
-      this.generate();
     }
   }
 

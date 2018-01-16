@@ -111,5 +111,5 @@
         "sap.ui.core.ID": "declare namespace sap.ui.core {\n\texport type ID = string;\n}",
         "sap.ui.core.URI": "declare namespace sap.ui.core {\n\texport type URI = string;\n}"
     },
-    "useCache": false
+    "cacheApis": true
 }

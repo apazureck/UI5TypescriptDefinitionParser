@@ -1,5 +1,5 @@
 declare module '{{fullName}}' {
-{{#each imports}}import {{this.name}} from '{{this.module}}/{{this.name}}';
+{{#each imports}}{{#unlessCond ../name '==' this.name}} import {{this.name}} from '{{this.module}}/{{this.name}}';{{/unlessCond}}
 {{/each}}
 
 /*$$propertyInterface$$*/
@@ -8,24 +8,38 @@ declare module '{{fullName}}' {
 {{parsedDescription}}
 */
 {{/if}}
-export class {{name}} {{#if extendedClass}}extends {{extendedClass}}{{/if}}{
+export class {{name}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}{
 /*$$ctors$$*/
 
 {{#if events.length}}
     {{#each events}}
     /**
-     {{this.parsedDescription}}*/
-    {{this.visibility}} {{this.name}}: (oEvent: Event<{{../name}},
-        {{#if this.parameters.length}}
-        {{this.parameters.type}}
-        {{else}}
-        void
-        {{/if}}>
-        
-        ) => void;
+     {{this.parsedDescription}}
+    */
+    {{this.visibility}} {{this.name}}: ({{#if this.parameters.length~}}{{this.parameters.0.name}}: 
+            {{~#if this.parameters.0.hasCustomEventHandler~}}
+                {{this.parameters.0.type}}
+            {{~else~}}
+                any
+            {{~/if~}}
+        {{/if}}) => void;
     {{/each}}
 {{/if}}
 
-/*$$methods$$*/
+{{#if methods.length~}}
+{{#each methods}}
+/**
+    {{this.parsedDescription}}
+*/
+{{this.visibility}} {{#if this.isStatic}}static {{/if}}{{this.name}}(
+    {{~#if this.parameters.length~}}
+    {{~#each this.parameters~}}
+        {{#unless @first}} {{/unless}}{{this.name}}: {{this.type}}{{#unless @last}},{{/unless}}
+    {{~/each~}}
+    {{~/if~}}
+){{#if this.returntype}}: {{this.returntype.type}}{{/if}};
+
+{{/each}}
+{{~/if}}
     }
 }

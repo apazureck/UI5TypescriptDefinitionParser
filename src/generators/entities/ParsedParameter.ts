@@ -21,7 +21,8 @@ export class ParsedParameter extends GeneratorBase {
             } else {
                 eventtype += "void";
             }
-            eventtype += ">) => void";
+            eventtype += ">";
+            this.type = eventtype;
             this.hasCustomEventHandler = true;
         } else if (param.parameterProperties) {
             this.optional = param.optional ? true : false;

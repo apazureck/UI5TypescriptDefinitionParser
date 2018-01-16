@@ -4,7 +4,61 @@ import { ISymbol } from "../../UI5DocumentationTypes";
 import { GeneratorBase } from "../GeneratorBase";
 import { ParsedEvent } from "./ParsedEvent";
 import { ParsedMethod } from "./ParsedMethod";
-import * as Handlebars from 'handlebars';
+import * as Handlebars from "handlebars";
+
+Handlebars.registerHelper("ifCond", function(v1, operator, v2, options) {
+  switch (operator) {
+    case "==":
+      return v1 == v2 ? options.fn(this) : options.inverse(this);
+    case "===":
+      return v1 === v2 ? options.fn(this) : options.inverse(this);
+    case "!=":
+      return v1 != v2 ? options.fn(this) : options.inverse(this);
+    case "!==":
+      return v1 !== v2 ? options.fn(this) : options.inverse(this);
+    case "<":
+      return v1 < v2 ? options.fn(this) : options.inverse(this);
+    case "<=":
+      return v1 <= v2 ? options.fn(this) : options.inverse(this);
+    case ">":
+      return v1 > v2 ? options.fn(this) : options.inverse(this);
+    case ">=":
+      return v1 >= v2 ? options.fn(this) : options.inverse(this);
+    case "&&":
+      return v1 && v2 ? options.fn(this) : options.inverse(this);
+    case "||":
+      return v1 || v2 ? options.fn(this) : options.inverse(this);
+    default:
+      return options.inverse(this);
+  }
+});
+
+Handlebars.registerHelper("unlessCond", function(v1, operator, v2, options) {
+  switch (operator) {
+    case "==":
+      return v1 == v2 ? options.inverse(this) : options.fn(this);
+    case "===":
+      return v1 === v2 ? options.inverse(this) : options.fn(this);
+    case "!=":
+      return v1 != v2 ? options.inverse(this) : options.fn(this);
+    case "!==":
+      return v1 !== v2 ? options.inverse(this) : options.fn(this);
+    case "<":
+      return v1 < v2 ? options.inverse(this) : options.fn(this);
+    case "<=":
+      return v1 <= v2 ? options.inverse(this) : options.fn(this);
+    case ">":
+      return v1 > v2 ? options.inverse(this) : options.fn(this);
+    case ">=":
+      return v1 >= v2 ? options.inverse(this) : options.fn(this);
+    case "&&":
+      return v1 && v2 ? options.inverse(this) : options.fn(this);
+    case "||":
+      return v1 || v2 ? options.inverse(this) : options.fn(this);
+    default:
+      return options.inverse(this);
+  }
+});
 
 interface IClass {
   constructors: ParsedMethod[];
@@ -72,11 +126,11 @@ export class ParsedClass extends GeneratorBase implements IClass {
   private imports: { [key: string]: IImport };
 
   toString(): string {
-      const template = Handlebars.compile(this.classTemplate, {
-          noEscape: true,
-      });
-      this.parsedDescription = this.createDescription(this.description);
-      return template(this);
+    const template = Handlebars.compile(this.classTemplate, {
+      noEscape: true
+    });
+    this.parsedDescription = this.createDescription(this.description);
+    return template(this);
     // this.log("Creating class string");
     // let ct = this.classTemplate.toString();
     // // 1. Set Module Name
@@ -239,35 +293,6 @@ export class ParsedClass extends GeneratorBase implements IClass {
   }
 
   parsedDescription: string;
-
-  private importsToString(): string {
-    this.log("Creating imports and returning import string");
-    const modules: { [module: string]: IImport[] } = {};
-
-    for (const i in this.imports) {
-      if (this.imports.hasOwnProperty(i)) {
-        const item = this.imports[i];
-        if (modules[item.module]) {
-          modules[item.module].push(item);
-        } else {
-          modules[item.module] = [item];
-        }
-      }
-    }
-    const ret: string[] = [];
-    for (const m in modules) {
-      if (modules.hasOwnProperty(m)) {
-        ret.push(
-          "import { " +
-            modules[m].map(x => x.name).join(",") +
-            ' } from "' +
-            m +
-            '";'
-        );
-      }
-    }
-    return ret.join("\n");
-  }
 
   private createSettingsInterface(): string {
     this.log("Creating settings interface");
