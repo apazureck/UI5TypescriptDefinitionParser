@@ -29,7 +29,7 @@ export class {{name}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}{
 {{#if methods.length~}}
 {{#each methods}}
 /**
-    {{this.parsedDescription}}
+    {{documentThis this.description}}
 */
 {{this.visibility}} {{#if this.isStatic}}static {{/if}}{{this.name}}(
     {{~#if this.parameters.length~}}

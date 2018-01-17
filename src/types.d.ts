@@ -1,4 +1,5 @@
 import { ISymbol } from './UI5DocumentationTypes';
+import { LogLevel } from './log';
 
 export interface IConfig {
     connection: {
@@ -40,6 +41,7 @@ export interface IConfig {
         [key: string]: string;
     }
     cacheApis: boolean;
+    logLevel: LogLevel;
 }
 
 export interface IDictionary {

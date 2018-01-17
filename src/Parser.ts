@@ -1,4 +1,4 @@
-import { IApi, ISymbol } from './UI5DocumentationTypes';
+import { IApi, ISymbol } from "./UI5DocumentationTypes";
 import { ParsedClass } from "./generators/entities/ParsedClass";
 import { ParsedNamespace } from "./generators/entities/ParsedNamespace";
 import { EnumGenerator } from "./generators/EnumGenerator";
@@ -8,10 +8,45 @@ import * as ncp from "ncp";
 import * as path from "path";
 import { RestClient } from "typed-rest-client/RestClient";
 import * as mkdirp from "mkdirp";
-import * as Handlebars from 'handlebars';
-import * as hbex from './handlebarsExtensions';
+import * as Handlebars from "handlebars";
+import * as hbex from "./handlebarsExtensions";
 hbex.registerHelpers(Handlebars);
+import * as gulp from "gulp";
+import * as gulptsf from "gulp-typescript-formatter";
+import * as ts from "typescript";
+import { Log, LogLevel } from "./log";
+import * as ProgressBar from "progress";
 
+Log.activate((message, level) => {
+  const curTime = new Date();
+  console.log(
+    curTime.getMinutes() +
+      ":" +
+      curTime.getSeconds() +
+      ":" +
+      curTime.getMilliseconds() +
+      " - " +
+      message
+  );
+});
+
+declare interface RootOptions {
+  replace: boolean;
+  verify: boolean;
+  baseDir: string[];
+  stdin: boolean;
+  tsconfig: boolean;
+  tslint: boolean;
+  editorconfig: boolean;
+  vscode: boolean;
+  tsfmt: boolean;
+  useTsconfig: string[];
+  useTslint: string[];
+  useTsfmt: string[];
+  useVscode: string[];
+  verbose: boolean;
+  version: boolean;
+}
 /**
  *
  *
@@ -30,32 +65,36 @@ export class Parser implements ILogDecorator {
   } = {};
 
   private currentApi: IApi;
+  private logger: Log;
 
   constructor(private configPath: string) {
     this.config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+    // overwrite setting
+    this.logger = new Log("Parser", /*this.config.logLevel*/ LogLevel.Info);
+    this.logger.Trace("Started Logger");
   }
   GenerateDeclarations(outfolder: string): void {
     this.outfolder = outfolder;
     let info = { generatedClasses: 0 };
     // Create rest client
     const rc = new RestClient("Agent", this.config.connection.root);
-    console.log("Generating Declarations");
+    this.logger.Info("Generating Declarations");
 
     // Check if each endpoint in the config is cached (if cache enabled), otherwise add it to the request list
     for (const endpoint of this.config.connection.endpoints) {
       const cachefile = path.join("apis", endpoint.replace(/\//g, "."));
 
       if (this.config.cacheApis) {
-        console.log("Using cache, Looking for cache file " + cachefile);
+        this.logger.Info("Using cache, Looking for cache file " + cachefile);
         if (fs.existsSync(cachefile)) {
           this.observedAPIs[endpoint] = {
             loaded: true,
-            
             api: JSON.parse(fs.readFileSync(cachefile, "utf-8"))
           };
+          this.logger.Info("File found!");
           continue;
         } else {
-          console.log(
+          this.logger.Info(
             "No cached file found, requesting from " +
               this.config.connection.root
           );
@@ -73,6 +112,7 @@ export class Parser implements ILogDecorator {
     // Request all not cached/loaded enpoints
     for (const endpoint of this.config.connection.endpoints) {
       if (!this.observedAPIs[endpoint].loaded) {
+        this.logger.Info("Loading endpoint '" + endpoint + "'");
         rc.get(this.config.connection.root + "/" + endpoint).then(
           (value => {
             this.receivedAPI(endpoint, value.result);
@@ -83,6 +123,7 @@ export class Parser implements ILogDecorator {
 
     // Wait for apis to come in
     let wait = true;
+    this.logger.Info("Waiting for apis to come in");
     while (wait) {
       let run = true;
       for (const ep in this.observedAPIs) {
@@ -92,8 +133,9 @@ export class Parser implements ILogDecorator {
         }
       }
 
-      // if all observed apis are loaded create 
+      // if all observed apis are loaded create
       if (run) {
+        this.logger.Info("Received all apis");
         this.generate();
         wait = false;
       }
@@ -120,24 +162,28 @@ export class Parser implements ILogDecorator {
   }
 
   private async generate() {
+    this.logger.Info("Scanning apis for enums");
     for (const endpoint in this.observedAPIs) {
       if (endpoint) {
         await this.getEnums(this.observedAPIs[endpoint].api);
       }
     }
 
+    this.logger.Info("Scanning apis for namespaces");
     for (const endpoint in this.observedAPIs) {
       if (endpoint) {
         await this.getNamespaces(this.observedAPIs[endpoint].api);
       }
     }
 
+    this.logger.Info("Scanning apis for classes");
     for (const endpoint in this.observedAPIs) {
       if (endpoint) {
         await this.getClasses(this.observedAPIs[endpoint].api);
       }
     }
 
+    this.logger.Info("Postprocessing all found classes");
     for (const c of this.allClasses) {
       if (c.extendedClass) {
         const classmodulename = c.extendedClass.replace(/\./g, "/");
@@ -146,7 +192,7 @@ export class Parser implements ILogDecorator {
             .filter((value, index, array) => value.fullName === classmodulename)
             .pop();
         } catch (error) {
-          console.log("Could not find baseclass for " + c.name);
+          this.logger.Info("Could not find baseclass for " + c.name);
         }
       }
     }
@@ -178,6 +224,10 @@ export class Parser implements ILogDecorator {
       }
     }
 
+    // Make namespace files
+    const nstemplate = Handlebars.compile(
+      fs.readFileSync("templates/namespace.d.ts.hb", "utf-8")
+    );
     for (const ns of this.allNamespaces) {
       const filepath = path.join(
         this.outfolder,
@@ -190,7 +240,7 @@ export class Parser implements ILogDecorator {
         if (nsstring) {
           await MakeDirRecursiveSync(path.dirname(filepath));
           try {
-            fs.writeFileSync(filepath, ns.toString(), { encoding: "utf-8" });
+            fs.writeFileSync(filepath, nstemplate(ns), { encoding: "utf-8" });
           } catch (error) {
             console.error(
               "Error writing file " + filepath + ": " + error.toString()
@@ -206,16 +256,32 @@ export class Parser implements ILogDecorator {
 
     this.replaceFiles("replacements", this.outfolder);
 
-    this.log(
+    // FOrmat all files
+    this.logger.Info("*** Formatting output files");
+    await this.formatAllFiles();
+
+    this.logger.Info(
       "Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done"
     );
   }
 
+  async formatAllFiles(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      gulp
+        .src(this.outfolder + "/**/*.ts")
+        .pipe(gulptsf({}))
+        .pipe(gulp.dest(this.outfolder))
+        .on("end", () => resolve())
+        .on("error", () => reject());
+    });
+  }
+
   private CreateClassOverloads() {
-    this.log("Pushing overloads for classes.");
     const baseclasses = this.allClasses.filter(
       (value, index, array) => !value.baseclass
     );
+    this.logger.Info("Pushing overloads for classes.");
+
     for (const bc of baseclasses) {
       bc.pushOverloads();
     }
@@ -246,13 +312,14 @@ export class Parser implements ILogDecorator {
     }
     return types.join("\n");
   }
-
   private async getEnums(api: IApi): Promise<{ generatedEnumCount: number }> {
     this.currentApi = api;
     let info = { generatedEnumCount: 0 };
 
     // Get Template for enums
-    const enumTemplate = Handlebars.compile(fs.readFileSync("enums.d.ts.hb", "utf-8"));
+    const enumTemplate = Handlebars.compile(
+      fs.readFileSync("templates/enums.d.ts.hb", "utf-8")
+    );
 
     // Create out folder if not existing
     if (!fs.existsSync(this.outfolder)) {
@@ -266,9 +333,8 @@ export class Parser implements ILogDecorator {
 
     // Get all enums for parsing
     if (api.symbols && api.symbols.length > 0) {
+      const enums = api.symbols.filter(x => x.kind === "enum");
 
-      const enums = api.symbols.filter(x=>x.kind === "enum");
-      
       // Parse enums using the template
       if (enums.length > 0) {
         fs.writeFileSync(
@@ -290,7 +356,10 @@ export class Parser implements ILogDecorator {
   ): Promise<{ generatedClassCount: number }> {
     this.currentApi = api;
     let info = { generatedClassCount: 0 };
-    const classTemplate = fs.readFileSync("classModule.d.ts.hb", "utf8");
+    const classTemplate = fs.readFileSync(
+      "templates/classModule.d.ts.hb",
+      "utf8"
+    );
 
     if (!fs.existsSync(this.outfolder)) {
       await MakeDirRecursiveSync(this.outfolder);
@@ -331,19 +400,24 @@ export class Parser implements ILogDecorator {
     );
     return info;
   }
+
   private async getNamespaces(
     api: IApi
   ): Promise<{ generatedNamespaceCount: number }> {
     this.currentApi = api;
     let info = { generatedNamespaceCount: 0 };
 
+    // Check outfolder
     if (!fs.existsSync(this.outfolder)) {
       await MakeDirRecursiveSync(this.outfolder);
     }
+
+    // Create namespace folder
     if (!fs.existsSync(path.join(this.outfolder, "namespaces"))) {
       await MakeDirRecursiveSync(path.join(this.outfolder, "namespaces"));
     }
 
+    // Create static class folder
     if (!fs.existsSync(path.join(this.outfolder, "classes", "static"))) {
       await MakeDirRecursiveSync(
         path.join(this.outfolder, "classes", "static")
@@ -377,7 +451,7 @@ export class Parser implements ILogDecorator {
   }
   log(message: string, sourceStack?: string) {
     if (sourceStack) {
-      console.log(
+      this.logger.Debug(
         "Library '" +
           this.currentApi.library +
           "' -> " +
@@ -386,7 +460,9 @@ export class Parser implements ILogDecorator {
           message
       );
     } else {
-      console.log("Library '" + this.currentApi.library + "': " + message);
+      this.logger.Debug(
+        "Library '" + this.currentApi.library + "': " + message
+      );
     }
   }
 }
