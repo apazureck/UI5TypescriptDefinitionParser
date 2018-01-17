@@ -5,7 +5,7 @@ import { IConfig, ILogDecorator } from '../types';
 export class EnumGenerator extends GeneratorBase {
 
     private currentEnum: string;
-    constructor(config: IConfig, private decorated: ILogDecorator) {
+    constructor(config: IConfig, private decorated: ILogDecorator, private template: string) {
         super(config);
     }
 
@@ -28,9 +28,7 @@ export class EnumGenerator extends GeneratorBase {
             this.log("Error in Documentation. No properties for enum '" + symbol.name+ "'");
             enumtypedef += "any";
         }
-
         
-
         ret += this.getDescription(symbol.description)
         ret += this.addTabs(enumtypedef, 1);
         this.config.enums[symbol.name] = "";

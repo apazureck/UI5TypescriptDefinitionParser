@@ -9,7 +9,6 @@ import { GeneratorBase } from "../GeneratorBase";
 import { ParsedClass } from "./ParsedClass";
 import { ParsedNamespace } from "./ParsedNamespace";
 import { ParsedParameter } from "./ParsedParameter";
-import { IReturnValue } from '../../UI5DocumentationTypes';
 
 export class ParsedMethod extends GeneratorBase {
   parameters: ParsedParameter[] = [];

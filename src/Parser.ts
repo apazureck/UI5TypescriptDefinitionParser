@@ -1,4 +1,4 @@
-import { IApi } from "./UI5DocumentationTypes";
+import { IApi, ISymbol } from './UI5DocumentationTypes';
 import { ParsedClass } from "./generators/entities/ParsedClass";
 import { ParsedNamespace } from "./generators/entities/ParsedNamespace";
 import { EnumGenerator } from "./generators/EnumGenerator";
@@ -8,6 +8,9 @@ import * as ncp from "ncp";
 import * as path from "path";
 import { RestClient } from "typed-rest-client/RestClient";
 import * as mkdirp from "mkdirp";
+import * as Handlebars from 'handlebars';
+import * as hbex from './handlebarsExtensions';
+hbex.registerHelpers(Handlebars);
 
 /**
  *
@@ -247,25 +250,30 @@ export class Parser implements ILogDecorator {
   private async getEnums(api: IApi): Promise<{ generatedEnumCount: number }> {
     this.currentApi = api;
     let info = { generatedEnumCount: 0 };
-    const enumGen = new EnumGenerator(this.config, this);
+
+    // Get Template for enums
+    const enumTemplate = Handlebars.compile(fs.readFileSync("enums.d.ts.hb", "utf-8"));
+
+    // Create out folder if not existing
     if (!fs.existsSync(this.outfolder)) {
       await MakeDirRecursiveSync(this.outfolder);
     }
 
-    let enums: string[] = [];
+    // check if enums folder exists and create it
     if (!fs.existsSync(path.join(this.outfolder, "enums"))) {
       await MakeDirRecursiveSync(path.join(this.outfolder, "enums"));
     }
+
+    // Get all enums for parsing
     if (api.symbols && api.symbols.length > 0) {
-      for (const s of api.symbols) {
-        if (s.kind === "enum") {
-          enums.push(enumGen.getEnum(s));
-        }
-      }
+
+      const enums = api.symbols.filter(x=>x.kind === "enum");
+      
+      // Parse enums using the template
       if (enums.length > 0) {
         fs.writeFileSync(
           path.join(this.outfolder, "enums", api.library + ".enums.d.ts"),
-          enums.join("\n"),
+          enumTemplate(enums),
           { encoding: "utf-8" }
         );
         this.log("Created Enums for '" + api.library + "'");
