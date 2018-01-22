@@ -1,7 +1,9 @@
 import { IConfig, IDictionary, ILogDecorator } from '../../types';
-import { ISymbol } from '../../UI5DocumentationTypes';
+import { ISymbol, IProperty } from '../../UI5DocumentationTypes';
 import { GeneratorBase } from '../GeneratorBase';
 import { ParsedMethod } from './ParsedMethod';
+import { ParsedParameter } from './ParsedParameter'
+import { ParsedField } from './ParsedField';
 
 export class ParsedNamespace extends GeneratorBase {
     private imports: IDictionary = {};
@@ -10,9 +12,20 @@ export class ParsedNamespace extends GeneratorBase {
     };
 
     public methods: ParsedMethod[] = [];
+    public fields: ParsedField[] = [];
     constructor(private documentNamespace: ISymbol, config: IConfig, private decorated: ILogDecorator) {
         super(config);
         this.createNamespaceMethods(this.documentNamespace);
+        this.createFields(this.documentNamespace);
+    }
+
+    private createFields(namespace: ISymbol): void {
+        if(namespace.properties) {
+            const map = namespace.properties.map(prop => new ParsedField(prop as IProperty, this, this.config, this));
+            if(map && map.length > 0) {
+                this.fields = map;
+            }
+        }
     }
 
     private createNamespaceMethods(namespace: ISymbol): void {

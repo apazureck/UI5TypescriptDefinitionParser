@@ -1,11 +1,12 @@
 import * as events from "events";
 import { IConfig, IImport, ILogDecorator } from "../../types";
-import { ISymbol } from "../../UI5DocumentationTypes";
+import { ISymbol, IParameter, IProperty } from '../../UI5DocumentationTypes';
 import { GeneratorBase } from "../GeneratorBase";
 import { ParsedEvent } from "./ParsedEvent";
 import { ParsedMethod } from "./ParsedMethod";
 import * as Handlebars from "handlebars";
-import * as hbex from '../../handlebarsExtensions';
+import * as hbex from "../../handlebarsExtensions";
+import { ParsedParameter } from './ParsedParameter';
 
 interface IClass {
   constructors: ParsedMethod[];
@@ -89,6 +90,8 @@ export class ParsedClass extends GeneratorBase implements IClass {
     // for (const importkey in this.imports) {
     //     if (importkey) {
     //         importStrings.push(`import { ${this.imports[importkey].name} } from "${this.imports[importkey].module}";`);
+
+
     //     }
     // }
     // ct = ct.replace("/*$$imports$$*/", importStrings.join("\n"));
@@ -200,7 +203,28 @@ export class ParsedClass extends GeneratorBase implements IClass {
       // Caught, as always a constructor is given.
       this.constructors = [];
     }
+
+    // 7. Create Extension interface
+    try {
+      this.log("Creating settings interface");
+
+      let props: IProperty[] = [];
+
+      if (this.documentClass["ui5-metadata"]) {
+        if (this.documentClass["ui5-metadata"].properties) {
+          for (const prop of this.documentClass["ui5-metadata"].properties) {
+            prop.type = this.getType(prop.type);
+            props.push(prop);
+          }
+          this.settingsInterfaceProperties = props;
+        }
+      }
+    } catch (error) {
+      this.settingsInterfaceProperties = [];
+    }
   }
+
+  private settingsInterfaceProperties: IProperty[] = [];
 
   protected onAddImport = (typeOrModule: string, type?: string) => {
     if (!typeOrModule) {
@@ -240,40 +264,6 @@ export class ParsedClass extends GeneratorBase implements IClass {
   }
 
   parsedDescription: string;
-
-  private createSettingsInterface(): string {
-    this.log("Creating settings interface");
-    let ret = "export interface I" + this.name + "Settings";
-
-    if (this.baseclass) {
-      const exmeta =
-        "I" +
-        this.documentClass.extends.split(this.typeSeparators).pop() +
-        "Settings";
-      ret += " extends " + exmeta;
-      this.addImport(this.baseclass.moduleName, exmeta);
-    }
-
-    ret += " {\n";
-
-    let props: string[] = [];
-
-    if (this.documentClass["ui5-metadata"]) {
-      if (this.documentClass["ui5-metadata"].properties) {
-        for (const prop of this.documentClass["ui5-metadata"].properties) {
-          let pstring: string = prop.name;
-          pstring += "?: ";
-          pstring += this.getType(prop.type);
-          pstring += ";";
-          props.push(pstring);
-        }
-      }
-    }
-
-    ret += this.addTabs(props.join("\n"), 1);
-
-    return ret + "\n}";
-  }
 
   public pushOverloads(): void {
     this.log("Pushing Overloads");

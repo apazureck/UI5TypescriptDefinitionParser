@@ -201,7 +201,16 @@ export class Parser implements ILogDecorator {
 
     this.generateSubbedTypeFile("substituted.d.ts");
 
+    this.logger.Info("Creating class files");
+    console.log();
+    var bar = new ProgressBar("  Pushing Overloads [:bar] :percent :etas", {
+      complete: "=",
+      incomplete: ".",
+      width: 20,
+      total: this.allClasses.length
+    });
     for (const c of this.allClasses) {
+      bar.tick(1);
       const filepath = path.join(
         this.outfolder,
         "classes",
@@ -224,6 +233,7 @@ export class Parser implements ILogDecorator {
       }
     }
 
+    this.logger.Info("Creating Namespace files");
     // Make namespace files
     const nstemplate = Handlebars.compile(
       fs.readFileSync("templates/namespace.d.ts.hb", "utf-8")
@@ -254,6 +264,7 @@ export class Parser implements ILogDecorator {
       }
     }
 
+    this.logger.Info("Copying replacement files");
     this.replaceFiles("replacements", this.outfolder);
 
     // FOrmat all files
@@ -281,10 +292,19 @@ export class Parser implements ILogDecorator {
       (value, index, array) => !value.baseclass
     );
     this.logger.Info("Pushing overloads for classes.");
-
+    console.log();
+    var bar = new ProgressBar("  Pushing Overloads [:bar] :percent :etas", {
+      complete: "=",
+      incomplete: ".",
+      width: 20,
+      total: baseclasses.length
+    });
     for (const bc of baseclasses) {
+      bar.tick(1);
       bc.pushOverloads();
     }
+    console.log("\n");
+    this.logger.Info("Overloads done");
   }
 
   private replaceFiles(sourcePath: string, outPath: string) {
