@@ -6,7 +6,7 @@ import { IConfig, ILogDecorator } from "./types";
 import * as fs from "fs";
 import * as ncp from "ncp";
 import * as path from "path";
-import { RestClient } from "typed-rest-client/RestClient";
+import { RestClient, IRestResponse } from "typed-rest-client/RestClient";
 import * as mkdirp from "mkdirp";
 import * as Handlebars from "handlebars";
 import * as hbex from "./handlebarsExtensions";
@@ -17,36 +17,12 @@ import * as ts from "typescript";
 import { Log, LogLevel } from "./log";
 import * as ProgressBar from "progress";
 
+const startTime = Date.now();
 Log.activate((message, level) => {
-  const curTime = new Date();
-  console.log(
-    curTime.getMinutes() +
-      ":" +
-      curTime.getSeconds() +
-      ":" +
-      curTime.getMilliseconds() +
-      " - " +
-      message
-  );
+  const curTime = Date.now();
+  console.log(curTime - startTime + " - " + message);
 });
 
-declare interface RootOptions {
-  replace: boolean;
-  verify: boolean;
-  baseDir: string[];
-  stdin: boolean;
-  tsconfig: boolean;
-  tslint: boolean;
-  editorconfig: boolean;
-  vscode: boolean;
-  tsfmt: boolean;
-  useTsconfig: string[];
-  useTslint: string[];
-  useTsfmt: string[];
-  useVscode: string[];
-  verbose: boolean;
-  version: boolean;
-}
 /**
  *
  *
@@ -70,76 +46,93 @@ export class Parser implements ILogDecorator {
   constructor(private configPath: string) {
     this.config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
     // overwrite setting
-    this.logger = new Log("Parser", /*this.config.logLevel*/ LogLevel.Info);
+    this.logger = new Log("Parser", /*this.config.logLevel*/ LogLevel.Trace);
     this.logger.Trace("Started Logger");
   }
-  GenerateDeclarations(outfolder: string): void {
-    this.outfolder = outfolder;
-    let info = { generatedClasses: 0 };
-    // Create rest client
-    const rc = new RestClient("Agent", this.config.connection.root);
-    this.logger.Info("Generating Declarations");
+  async GenerateDeclarations(outfolder: string): Promise<void> {
+    return new Promise<void>(async (resolve, reject) => {
+      this.outfolder = outfolder;
+      let info = { generatedClasses: 0 };
+      // Create rest client
+      const rc = new RestClient("Agent", this.config.connection.root);
+      this.logger.Info("Generating Declarations");
 
-    // Check if each endpoint in the config is cached (if cache enabled), otherwise add it to the request list
-    for (const endpoint of this.config.connection.endpoints) {
-      const cachefile = path.join("apis", endpoint.replace(/\//g, "."));
+      // Check if each endpoint in the config is cached (if cache enabled), otherwise add it to the request list
+      for (const endpoint of this.config.connection.endpoints) {
+        const cachefile = path.join("apis", endpoint.replace(/\//g, "."));
 
-      if (this.config.cacheApis) {
-        this.logger.Info("Using cache, Looking for cache file " + cachefile);
-        if (fs.existsSync(cachefile)) {
-          this.observedAPIs[endpoint] = {
-            loaded: true,
-            api: JSON.parse(fs.readFileSync(cachefile, "utf-8"))
-          };
-          this.logger.Info("File found!");
-          continue;
+        if (this.config.cacheApis) {
+          this.logger.Info("Using cache, Looking for cache file " + cachefile);
+          if (fs.existsSync(cachefile)) {
+            this.observedAPIs[endpoint] = {
+              loaded: true,
+              api: JSON.parse(fs.readFileSync(cachefile, "utf-8"))
+            };
+            this.logger.Info("File found!");
+            continue;
+          } else {
+            this.logger.Info(
+              "No cached file found, requesting from " +
+                this.config.connection.root
+            );
+            this.observedAPIs[endpoint] = {
+              loaded: false
+            };
+          }
         } else {
-          this.logger.Info(
-            "No cached file found, requesting from " +
-              this.config.connection.root
-          );
           this.observedAPIs[endpoint] = {
             loaded: false
           };
         }
-      } else {
-        this.observedAPIs[endpoint] = {
-          loaded: false
-        };
       }
-    }
 
-    // Request all not cached/loaded enpoints
-    for (const endpoint of this.config.connection.endpoints) {
-      if (!this.observedAPIs[endpoint].loaded) {
-        this.logger.Info("Loading endpoint '" + endpoint + "'");
-        rc.get(this.config.connection.root + "/" + endpoint).then(
-          (value => {
-            this.receivedAPI(endpoint, value.result);
-          }).bind(this)
-        );
-      }
-    }
+      // Callback for get
+      const received = async (value: IRestResponse<any>, endpoint: string) => {
+        this.receivedAPI(endpoint, value.result);
 
-    // Wait for apis to come in
-    let wait = true;
-    this.logger.Info("Waiting for apis to come in");
-    while (wait) {
-      let run = true;
-      for (const ep in this.observedAPIs) {
-        if (this.observedAPIs[ep].loaded === false) {
-          run = false;
-          break;
+        // if all observed apis are loaded create
+        if (this.checkIfAllApisArePresent()) {
+          try {
+            this.logger.Info("Received all apis");
+            await this.generate();
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        }
+      };
+
+      // Request all not cached/loaded enpoints. Use then instead of await to make requests simultaneously
+      for (const endpoint of this.config.connection.endpoints) {
+        if (!this.observedAPIs[endpoint].loaded) {
+          this.logger.Info("Loading endpoint '" + endpoint + "'");
+          rc
+            .get(this.config.connection.root + "/" + endpoint)
+            .then(value => received(value, endpoint));
         }
       }
 
       // if all observed apis are loaded create
-      if (run) {
-        this.logger.Info("Received all apis");
-        this.generate();
-        wait = false;
+      if (this.checkIfAllApisArePresent()) {
+        try {
+          this.logger.Info("Received all apis");
+          await this.generate();
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
+      }
+    });
+  }
+
+  private checkIfAllApisArePresent(): boolean {
+    let run = true;
+    for (const ep in this.observedAPIs) {
+      if (this.observedAPIs[ep].loaded === false) {
+        run = false;
       }
     }
+    return run;
   }
 
   private receivedAPI(endpoint: string, api: IApi) {
@@ -177,11 +170,7 @@ export class Parser implements ILogDecorator {
     }
 
     this.logger.Info("Scanning apis for classes");
-    for (const endpoint in this.observedAPIs) {
-      if (endpoint) {
-        await this.getClasses(this.observedAPIs[endpoint].api);
-      }
-    }
+    await this.getClassesFromApiJsons();
 
     this.logger.Info("Postprocessing all found classes");
     for (const c of this.allClasses) {
@@ -203,35 +192,7 @@ export class Parser implements ILogDecorator {
 
     this.logger.Info("Creating class files");
     console.log();
-    var bar = new ProgressBar("  Pushing Overloads [:bar] :percent :etas", {
-      complete: "=",
-      incomplete: ".",
-      width: 20,
-      total: this.allClasses.length
-    });
-    for (const c of this.allClasses) {
-      bar.tick(1);
-      const filepath = path.join(
-        this.outfolder,
-        "classes",
-        c.fullName + ".d.ts"
-      );
-      this.log("Creating class " + filepath);
-      try {
-        await MakeDirRecursiveSync(path.dirname(filepath));
-        try {
-          fs.writeFileSync(filepath, c.toString(), { encoding: "utf-8" });
-        } catch (error) {
-          console.error(
-            "Error writing file " + filepath + ": " + error.toString()
-          );
-        }
-      } catch (err) {
-        console.error(
-          "Error creating folder for file " + filepath + ": " + err.toString()
-        );
-      }
-    }
+    await this.ParseAllClasses(this.allClasses);
 
     this.logger.Info("Creating Namespace files");
     // Make namespace files
@@ -267,6 +228,9 @@ export class Parser implements ILogDecorator {
     this.logger.Info("Copying replacement files");
     this.replaceFiles("replacements", this.outfolder);
 
+    this.logger.Info("Replacing Post Processing directives");
+    await this.doFilePostProcessingReplacements(this.config);
+
     // FOrmat all files
     this.logger.Info("*** Formatting output files");
     await this.formatAllFiles();
@@ -274,6 +238,101 @@ export class Parser implements ILogDecorator {
     this.logger.Info(
       "Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done"
     );
+  }
+
+  private async doFilePostProcessingReplacements(
+    config: IConfig
+  ): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      for (const moduleName in config.postProcessing) {
+        try {
+          const fullFilePath = path.join(this.outfolder, moduleName + ".d.ts");
+          let content = fs.readFileSync(fullFilePath, "utf-8");
+          for (const replacer of config.postProcessing[moduleName]) {
+            const replaceregex = replacer.isRegex ? new RegExp(replacer.searchString, replacer.regexFlags) : replacer.searchString;
+            content = content.replace(replaceregex, replacer.replacement);
+          }
+          fs.writeFileSync(fullFilePath, content);
+        } catch (error) {
+          this.logger.Error(
+            "Error occurred during postprocessing " +
+              moduleName +
+              ": " +
+              JSON.stringify(error)
+          );
+        }
+      }
+      resolve();
+    });
+  }
+
+  private async getClassesFromApiJsons(): Promise<void> {
+    let apicount = 0;
+    for (const endpoint in this.observedAPIs) {
+      apicount++;
+    }
+
+    let finishedApiCount = 0;
+
+    const apifinished = (resolve: () => void) => {
+      finishedApiCount++;
+      if (!(finishedApiCount < apicount)) {
+        resolve();
+      }
+    };
+    return new Promise<void>((resolve, reject) => {
+      for (const endpoint in this.observedAPIs) {
+        if (endpoint) {
+          this.getClasses(this.observedAPIs[endpoint].api).then(() =>
+            apifinished(resolve)
+          );
+        }
+      }
+    });
+  }
+
+  private async ParseAllClasses(allClasses: ParsedClass[]): Promise<void> {
+    // var bar = new ProgressBar("  Pushing Overloads [:bar] :percent :etas", {
+    //   complete: "=",
+    //   incomplete: ".",
+    //   width: 20,
+    //   total: this.allClasses.length
+    // });
+    return new Promise<void>(async (resolve, reject) => {
+      const classcount = allClasses.length;
+      let generatedclasses = 0;
+      for (const c of allClasses) {
+        try {
+          await this.ParseClass(c);
+          generatedclasses++;
+          if (!(generatedclasses < classcount)) {
+            resolve();
+          }
+        } catch {
+          generatedclasses++;
+        }
+      }
+    });
+  }
+
+  private async ParseClass(c: ParsedClass): Promise<void> {
+    // bar.tick(1);
+    const filepath = path.join(this.outfolder, "classes", c.fullName + ".d.ts");
+    this.log("Creating class " + filepath);
+    try {
+      await MakeDirRecursiveSync(path.dirname(filepath));
+      try {
+        fs.writeFileSync(filepath, c.toString(), { encoding: "utf-8" });
+      } catch (error) {
+        console.error(
+          "Error writing file " + filepath + ": " + error.toString()
+        );
+      }
+    } catch (err) {
+      console.error(
+        "Error creating folder for file " + filepath + ": " + err.toString()
+      );
+    }
   }
 
   async formatAllFiles(): Promise<void> {
@@ -293,14 +352,7 @@ export class Parser implements ILogDecorator {
     );
     this.logger.Info("Pushing overloads for classes.");
     console.log();
-    var bar = new ProgressBar("  Pushing Overloads [:bar] :percent :etas", {
-      complete: "=",
-      incomplete: ".",
-      width: 20,
-      total: baseclasses.length
-    });
     for (const bc of baseclasses) {
-      bar.tick(1);
       bc.pushOverloads();
     }
     console.log("\n");
@@ -484,6 +536,10 @@ export class Parser implements ILogDecorator {
         "Library '" + this.currentApi.library + "': " + message
       );
     }
+  }
+
+  doPostProductionReplacements(config: IConfig) {
+    this.outfolder;
   }
 }
 

@@ -1,6 +1,6 @@
 declare module 'sap/ui/model/json/JSONModel' {
-	import { ClientModel } from 'sap/ui/model/ClientModel'
-	import { Metadata } from 'sap/ui/base/Metadata'
+	import ClientModel from 'sap/ui/model/ClientModel';
+	import Metadata from 'sap/ui/base/Metadata';
 	
 
 /**
@@ -10,7 +10,7 @@ declare module 'sap/ui/model/json/JSONModel' {
  * JS objects without the need to call setData, setProperty or refresh. Observation does only work for existing
  * properties in the JSON, it can not detect new properties or new array entries.
 **/
-    export class JSONModel<T> extends ClientModel<T> {
+    export default class JSONModel<T> extends ClientModel<T> {
 		/**
 		 * Constructor for a new JSONModel.
 		 * @param {{}} oData either the URL where to load the JSON from or a JS object

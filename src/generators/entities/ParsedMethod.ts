@@ -44,8 +44,12 @@ export class ParsedMethod extends GeneratorBase {
   }
 
   get parsedDescription(): string {
-    return this.createDescription(this.description, this.parameters, this.returntype);
-}
+    return this.createDescription(
+      this.description,
+      this.parameters,
+      this.returntype
+    );
+  }
   private createDescription(
     description: string,
     parameters?: ParsedParameter[],
@@ -231,5 +235,13 @@ export class ParsedMethod extends GeneratorBase {
     } else {
       this.decorated.log("Function '" + this.name + "'", message);
     }
+  }
+
+  public IsOverload(method: ParsedMethod) {
+    if (this.name !== method.name) return false;
+
+    if (this.parameters.length === method.parameters.length) return false;
+
+    return true;
   }
 }

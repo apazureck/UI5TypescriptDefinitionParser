@@ -1,21 +1,21 @@
 declare module 'sap/ui/model/Model' {
-	import { MessageProcessor } from 'sap/ui/core/message/MessageProcessor'
-	import { Event } from 'sap/ui/base/Event'
-	import { ContextBinding } from 'sap/ui/model/ContextBinding'
-	import { ListBinding } from 'sap/ui/model/ListBinding'
-	import { Sorter } from 'sap/ui/model/Sorter'
-	import { PropertyBinding } from 'sap/ui/model/PropertyBinding'
-	import { TreeBinding } from 'sap/ui/model/TreeBinding'
-	import { Context } from 'sap/ui/model/Context'
-	import { ChangeReason } from 'sap/ui/model/ChangeReason'
-	import { Metadata } from 'sap/ui/base/Metadata'
-	import { MetaModel } from 'sap/ui/model/MetaModel'
+	import MessageProcessor from 'sap/ui/core/message/MessageProcessor';
+	import Event from 'sap/ui/base/Event';
+	import ContextBinding from 'sap/ui/model/ContextBinding';
+	import ListBinding from 'sap/ui/model/ListBinding';
+	import Sorter from 'sap/ui/model/Sorter';
+	import PropertyBinding from 'sap/ui/model/PropertyBinding';
+	import TreeBinding from 'sap/ui/model/TreeBinding';
+	import Context from 'sap/ui/model/Context';
+	import ChangeReason from 'sap/ui/model/ChangeReason';
+	import Metadata from 'sap/ui/base/Metadata';
+	import MetaModel from 'sap/ui/model/MetaModel';
 	
 
 /**
  * This is an abstract base class for model objects.
 **/
-    export class Model<T> extends MessageProcessor {
+    export default class Model<T> extends MessageProcessor {
 		/**
 		 * Constructor for a new Model.
 		 * 

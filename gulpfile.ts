@@ -23,19 +23,33 @@ export class Gulpfile {
   @SequenceTask()
   default() {
     // because this task has "default" name it will be run as default gulp task
-    return ["copySourceFiles", "copyHandlebarsTemplates", "runTest"];
+    return [
+      "copySourceFiles",
+      "copyHandlebarsTemplates",
+      "replaceFiles",
+      "runTest",
+      "copyDeclarationsToTestFolder"
+    ];
   }
 
   @Task()
   copyDeclarationsToTestFolder() {
-    return gulp.src("./declarations/**/*").
-    pipe(gulp.dest("../test/declarations"));
+    return gulp
+      .src("./declarations/**/*")
+      .pipe(gulp.dest("../test/declarations"));
   }
 
   @Task()
   runTest() {
-    let p = new Parser("./src/config.json");
-    p.GenerateDeclarations("declarations");
-    return gulp.src(["../src/replacements/**/*"]).pipe(gulp.dest("replacements"));
+    let p = new Parser("./config.json");
+    return p.GenerateDeclarations("declarations");
+  }
+
+  @Task()
+  replaceFiles() {
+    console.log("Copying replacement files");
+    return gulp
+      .src(["../src/replacements/**/*"])
+      .pipe(gulp.dest("replacements"));
   }
 }

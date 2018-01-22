@@ -42,6 +42,15 @@ export interface IConfig {
     }
     cacheApis: boolean;
     logLevel: LogLevel;
+
+    postProcessing: {
+        [fileName: string]: {
+            isRegex?: boolean;
+            regexFlags?: string;
+            searchString: string;
+            replacement: string;
+        }[]
+    }
 }
 
 export interface IDictionary {

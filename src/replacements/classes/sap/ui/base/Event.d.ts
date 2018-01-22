@@ -1,13 +1,13 @@
 declare module 'sap/ui/base/Event' {
-	import { Object } from 'sap/ui/base/Object'
-	import { Metadata } from 'sap/ui/base/Metadata'
-	import { EventProvider } from 'sap/ui/base/EventProvider'
+    import Object from 'sap/ui/base/Object'
+    import Metadata from 'sap/ui/base/Metadata'
+    import EventProvider from 'sap/ui/base/EventProvider'
 
 
 	/**
 	 * An Event object consisting of an id, a source and a map of parameters
 	**/
-	export class Event<Tsource extends EventProvider, Tparameters> extends Object {
+    export default class Event<Tsource extends EventProvider, Tparameters> extends Object {
 		/**
 		 * Creates an event with the given <code>sId</code>, linked to the provided <code>oSource</code> and enriched with the <code>mParameters</code>.
 		 * @param {string} sId The id of the event
@@ -16,7 +16,7 @@ declare module 'sap/ui/base/Event' {
 		 * 
 		**/
 
-		constructor(sId: string, oSource: EventProvider, mParameters: {});
+        constructor(sId: string, oSource: EventProvider, mParameters: {});
 
 
 
@@ -27,7 +27,7 @@ declare module 'sap/ui/base/Event' {
 		 * 
 		**/
 
-		cancelBubble(): void;
+        cancelBubble(): void;
 		/**
 		 * Creates a new subclass of class sap.ui.base.Event with name <code>sClassName</code>
 and enriches it with the information contained in <code>oClassInfo</code>.
@@ -40,21 +40,21 @@ and enriches it with the information contained in <code>oClassInfo</code>.
 		 * 
 		**/
 
-		static extend(sClassName: string, oClassInfo?: {}, FNMetaImpl?: () => any): () => any;
+        static extend(sClassName: string, oClassInfo?: {}, FNMetaImpl?: () => any): () => any;
 		/**
 		 * Returns the id of the event.
 		 * @return {string} The id of the event
 		 * 
 		**/
 
-		getId(): string;
+        getId(): string;
 		/**
 		 * Returns a metadata object for class sap.ui.base.Event.
 		 * @return {Metadata} Metadata object describing this class
 		 * 
 		**/
 
-		static getMetadata(): Metadata;
+        static getMetadata(): Metadata;
 		/**
 		 * Returns the value of the parameter with the given sName.
 		 * @return {any} The value for the named parameter
@@ -62,21 +62,21 @@ and enriches it with the information contained in <code>oClassInfo</code>.
 		 * 
 		**/
 
-		getParameter<K extends keyof Tparameters>(sName: K): Tparameters[K];
+        getParameter<K extends keyof Tparameters>(sName: K): Tparameters[K];
 		/**
 		 * Returns all parameter values of the event keyed by their names.
 		 * @return {any} All parameters of the event keyed by name
 		 * 
 		**/
 
-		getParameters(): Tparameters;
+        getParameters(): Tparameters;
 		/**
 		 * Returns the event provider on which the event was fired.
 		 * @return {EventProvider} The source of the event
 		 * 
 		**/
 
-		getSource(): Tsource;
+        getSource(): Tsource;
 		/**
 		 * Prevent the default action of this event.
 		 * 
@@ -84,6 +84,6 @@ and enriches it with the information contained in <code>oClassInfo</code>.
 		 * 
 		**/
 
-		preventDefault(): void;
-	}
+        preventDefault(): void;
+    }
 }

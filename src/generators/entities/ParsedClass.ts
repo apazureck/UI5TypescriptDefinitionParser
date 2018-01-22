@@ -3,7 +3,7 @@ import { IConfig, IImport, ILogDecorator } from "../../types";
 import { ISymbol, IParameter, IProperty } from '../../UI5DocumentationTypes';
 import { GeneratorBase } from "../GeneratorBase";
 import { ParsedEvent } from "./ParsedEvent";
-import { ParsedMethod } from "./ParsedMethod";
+import { ParsedMethod } from './ParsedMethod';
 import * as Handlebars from "handlebars";
 import * as hbex from "../../handlebarsExtensions";
 import { ParsedParameter } from './ParsedParameter';
@@ -278,8 +278,7 @@ export class ParsedClass extends GeneratorBase implements IClass {
     for (const basemethod of this.baseclass.methods) {
       if (
         this.methods.some(
-          (value, index, array) => value.name === basemethod.name
-        )
+          (value, index, array) => value.IsOverload(basemethod))
       ) {
         this.methods.push(basemethod);
       }

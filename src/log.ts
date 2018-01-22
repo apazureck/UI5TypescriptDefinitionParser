@@ -4,7 +4,7 @@ export class Log {
     private readonly logLevel?: LogLevel
   ) {
     this.name = name || "Log";
-    this.logLevel = logLevel || LogLevel.Info;
+    this.logLevel = logLevel != undefined ? logLevel : LogLevel.Info;
   }
   static activate(
     logFunction: (message: string, level: LogLevel) => void
