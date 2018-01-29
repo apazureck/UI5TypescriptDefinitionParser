@@ -8,7 +8,8 @@ export abstract class GeneratorBase implements ILogDecorator {
     number: "number",
     void: "void",
     string: "string",
-    boolean: "boolean"
+    boolean: "boolean",
+    RegExp: "RegExp"
   };
 
   constructor(protected readonly config: IConfig) {}
@@ -38,12 +39,12 @@ export abstract class GeneratorBase implements ILogDecorator {
         const oldtype = type;
 
         // Check if class is namespaced
-        if (!type.match(/\./)) {
-          type = this.config.typeMap[type];
-          ret.push(type);
-          this.log("Replaced: Type '" + oldtype + "' => Type '" + type + "'");
-          continue;
-        }
+        // if (!type.match(/\./)) {
+        type = this.config.typeMap[type];
+        ret.push(type);
+        this.log("Replaced: Type '" + oldtype + "' => Type '" + type + "'");
+        continue;
+        // }
       }
 
       if (this.tsBaseTypes.hasOwnProperty(type)) {
@@ -63,12 +64,18 @@ export abstract class GeneratorBase implements ILogDecorator {
         continue;
       }
 
-      this.addImport(type);
-      ret.push(
-        isArray
-          ? type.split(this.typeSeparators).pop() + "[]"
-          : type.split(this.typeSeparators).pop()
-      );
+      if (this.config.ambientTypes[type]) {
+        ret.push(
+          isArray ? type + "[]" : type
+        );
+      } else {
+        this.addImport(type);
+        ret.push(
+          isArray
+            ? type.split(this.typeSeparators).pop() + "[]"
+            : type.split(this.typeSeparators).pop()
+        );
+      }
     }
     return ret.join("|");
   }
@@ -106,5 +113,10 @@ export function makeComment(description: string): string {
   if (!description) {
     return "";
   }
-  return "* " + description.split("\n").reduce((aggregate, newLine) => aggregate + "\n * " + newLine);
+  return (
+    "* " +
+    description
+      .split("\n")
+      .reduce((aggregate, newLine) => aggregate + "\n * " + newLine)
+  );
 }

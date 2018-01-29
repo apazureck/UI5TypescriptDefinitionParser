@@ -52,7 +52,7 @@ export default class {{name}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}
 /**
     {{documentThis this.description}}
 */
-{{this.visibility}} {{#if this.isStatic}}static {{/if}}{{this.name}}(
+{{this.visibility}} {{#if this.isStatic}}static {{/if}}{{this.name}}{{#if this.IsGeneric}}<{{#each this.GenericParameters}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}>{{/if}}(
     {{~#if this.parameters.length~}}
     {{~#each this.parameters~}}
         {{#unless @first}} {{/unless}}{{this.name}}: {{this.type}}{{#unless @last}},{{/unless}}

@@ -31,7 +31,10 @@ export class ParsedEvent extends GeneratorBase {
         this.parameters = [];
         if(event.parameters[0].type === "sap.ui.base.Event") {
             this.parameters.push(new ParsedParameter(event.parameters[0], className, this.onAddImport, this.config, this));
+        } else if (event.parameters[0].parameterProperties && event.parameters[0].parameterProperties.length > 0 && event.parameters[0].parameterProperties[0].name === "getParameters"){
+            this.parameters.push(new ParsedParameter(event.parameters[0], className, this.onAddImport, this.config, this));
         } else {
+            // May be a jquery event?
             this.log("ODD EVENT PARAMETERSET!");
         }
     }

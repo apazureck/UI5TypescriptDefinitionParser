@@ -31,6 +31,11 @@ export class ParsedClass extends GeneratorBase implements IClass {
     return this.documentClass.basename;
   }
 
+  get namespace(): string {
+    const ret = this.documentClass.name.split(".");
+    return ret.splice(ret.length-1, 1).join(".");
+  }
+
   get moduleName(): string {
     let moduleparts = this.documentClass.module.split(this.typeSeparators);
     return this.documentClass.module
@@ -79,53 +84,6 @@ export class ParsedClass extends GeneratorBase implements IClass {
     });
     this.parsedDescription = this.createDescription(this.description);
     return template(this);
-    // this.log("Creating class string");
-    // let ct = this.classTemplate.toString();
-    // // 1. Set Module Name
-    // ct = ct.replace("classModule", this.moduleName);
-    // // 2. Set Class Name
-    // ct = ct.replace("className", this.name);
-    // // 3. Add Imports
-    // const importStrings: string[] = [];
-    // for (const importkey in this.imports) {
-    //     if (importkey) {
-    //         importStrings.push(`import { ${this.imports[importkey].name} } from "${this.imports[importkey].module}";`);
-
-
-    //     }
-    // }
-    // ct = ct.replace("/*$$imports$$*/", importStrings.join("\n"));
-    // if (this.extendedClass) {
-    //     ct = ct.replace("/*$$extends$$*/", "extends " + this.extendedClass.split(".").pop());
-    // } else {
-    //     ct = ct.replace("/*$$extends$$*/", "");
-    // }
-    // // 3. Paste description
-    // ct = ct.replace("/*$$description$$*/", this.createDescription(this.description));
-    // // 4. Create Events
-    // if (this.events.length > 0) {
-    //     ct = ct.replace("/*$$events$$*/", this.addTabs(this.events.map((value, index, array) => value.toString()).join("\n"), 2));
-    // } else {
-    //     ct = ct.replace("/*$$events$$*/", "");
-    // }
-    // if (this.methods.length > 0) {
-    //     ct = ct.replace("/*$$methods$$*/", this.addTabs(this.methods.map((value, index, array) => value.toString()).join("\n"), 2));
-    // } else {
-    //     ct = ct.replace("/*$$methods$$*/", "");
-    // }
-    // if (this.constructors.length > 0) {
-    //     ct = ct.replace("/*$$ctors$$*/", this.addTabs(this.constructors.map((value, index, array) => value.toString()).join("\n"), 2));
-    // } else {
-    //     ct = ct.replace("/*$$ctors$$*/", "");
-    // }
-    // // Create Property Interface
-    // ct = ct.replace("/*$$propertyInterface$$*/", this.createSettingsInterface());
-    // // Replace Imports
-    // if (this.imports[this.name]) {
-    //     delete this.imports[this.name];
-    // }
-    // ct = ct.replace("/*$$imports$$*/", this.addTabs(this.importsToString(), 1));
-    // return ct;
   }
 
   log(message: string, sourceStack?: string): void {

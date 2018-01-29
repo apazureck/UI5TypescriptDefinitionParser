@@ -51,6 +51,14 @@ export interface IConfig {
             replacement: string;
         }[]
     }
+
+    cleanParamNames: {
+        [oldName: string]: string
+    }
+
+    ambientTypes: {
+        [typename: string]: any
+    }
 }
 
 export interface IDictionary {

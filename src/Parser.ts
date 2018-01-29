@@ -169,6 +169,13 @@ export class Parser implements ILogDecorator {
       }
     }
 
+    this.logger.Info("Scanning for interfaces");
+    for (const endpoint in this.observedAPIs) {
+      if (endpoint) {
+        await this.getInterfaces(this.observedAPIs[endpoint].api);
+      }
+    }
+
     this.logger.Info("Scanning apis for classes");
     await this.getClassesFromApiJsons();
 
@@ -197,7 +204,10 @@ export class Parser implements ILogDecorator {
     this.logger.Info("Creating Namespace files");
     // Make namespace files
     const nstemplate = Handlebars.compile(
-      fs.readFileSync("templates/namespace.d.ts.hb", "utf-8")
+      fs.readFileSync("templates/namespace.d.ts.hb", "utf-8"),
+      {
+        noEscape: true
+      }
     );
     for (const ns of this.allNamespaces) {
       const filepath = path.join(
@@ -207,16 +217,14 @@ export class Parser implements ILogDecorator {
       );
       this.log("Creating namespace " + filepath);
       try {
-        const nsstring = ns.toString();
-        if (nsstring) {
-          await MakeDirRecursiveSync(path.dirname(filepath));
-          try {
-            fs.writeFileSync(filepath, nstemplate(ns), { encoding: "utf-8" });
-          } catch (error) {
-            console.error(
-              "Error writing file " + filepath + ": " + error.toString()
-            );
-          }
+        // const nsstring = ns.toString();
+        await MakeDirRecursiveSync(path.dirname(filepath));
+        try {
+          fs.writeFileSync(filepath, nstemplate(ns), { encoding: "utf-8" });
+        } catch (error) {
+          console.error(
+            "Error writing file " + filepath + ": " + error.toString()
+          );
         }
       } catch (error) {
         console.error(
@@ -228,16 +236,26 @@ export class Parser implements ILogDecorator {
     this.logger.Info("Copying replacement files");
     this.replaceFiles("replacements", this.outfolder);
 
+    // FOrmat all files
+    this.logger.Info("*** Formatting output files");
+    await this.formatAllFiles();
+
     this.logger.Info("Replacing Post Processing directives");
     await this.doFilePostProcessingReplacements(this.config);
 
-    // FOrmat all files
+    // FOrmat all files again, as the user will replace the formatted strings.
     this.logger.Info("*** Formatting output files");
     await this.formatAllFiles();
 
     this.logger.Info(
       "Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done"
     );
+  }
+
+  private async getInterfaces(api: IApi) {}
+
+  private escapeRegExp(str: string): string {
+    return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
   }
 
   private async doFilePostProcessingReplacements(
@@ -249,7 +267,9 @@ export class Parser implements ILogDecorator {
           const fullFilePath = path.join(this.outfolder, moduleName + ".d.ts");
           let content = fs.readFileSync(fullFilePath, "utf-8");
           for (const replacer of config.postProcessing[moduleName]) {
-            const replaceregex = replacer.isRegex ? new RegExp(replacer.searchString, replacer.regexFlags) : replacer.searchString;
+            const replaceregex = replacer.isRegex
+              ? new RegExp(replacer.searchString, replacer.regexFlags)
+              : new RegExp(this.escapeRegExp(replacer.searchString), "g");
             content = content.replace(replaceregex, replacer.replacement);
           }
           fs.writeFileSync(fullFilePath, content);
@@ -384,14 +404,17 @@ export class Parser implements ILogDecorator {
     }
     return types.join("\n");
   }
+
+  enumTemplate: HandlebarsTemplateDelegate<any> = Handlebars.compile(
+    fs.readFileSync("templates/enums.d.ts.hb", "utf-8"),
+    {
+      noEscape: true
+    }
+  );
+
   private async getEnums(api: IApi): Promise<{ generatedEnumCount: number }> {
     this.currentApi = api;
     let info = { generatedEnumCount: 0 };
-
-    // Get Template for enums
-    const enumTemplate = Handlebars.compile(
-      fs.readFileSync("templates/enums.d.ts.hb", "utf-8")
-    );
 
     // Create out folder if not existing
     if (!fs.existsSync(this.outfolder)) {
@@ -406,12 +429,15 @@ export class Parser implements ILogDecorator {
     // Get all enums for parsing
     if (api.symbols && api.symbols.length > 0) {
       const enums = api.symbols.filter(x => x.kind === "enum");
+      for (const e of enums) {
+        this.config.ambientTypes[e.name] = e;
+      }
 
       // Parse enums using the template
       if (enums.length > 0) {
         fs.writeFileSync(
           path.join(this.outfolder, "enums", api.library + ".enums.d.ts"),
-          enumTemplate(enums),
+          this.enumTemplate(enums),
           { encoding: "utf-8" }
         );
         this.log("Created Enums for '" + api.library + "'");
@@ -502,7 +528,9 @@ export class Parser implements ILogDecorator {
           case "enum":
             break;
           case "namespace":
-            this.allNamespaces.push(new ParsedNamespace(s, this.config, this));
+            const ns = new ParsedNamespace(s, this.config, this);
+            this.config.ambientTypes[s.name] = ns;
+            this.allNamespaces.push(ns);
             // Write to file
             // TODO: Create folder structure
             // fs.writeFileSync(path.join(this.outfolder, "classes", s.name + ".d.ts"), cstring, 'utf-8');

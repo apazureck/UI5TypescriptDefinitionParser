@@ -7,6 +7,7 @@ export class ParsedParameter extends GeneratorBase {
     private hasCustomEventHandler = false;
     constructor(private param: IParameter, className: string, addImport: (type: string) => void, config: IConfig, private decorated: ILogDecorator) {
         super(config);
+        param.name = this.cleanName(param.name, config);
         this.onAddImport = addImport;
         if (param.type === "sap.ui.base.Event") {
             let eventtype = this.getType(param.type);
@@ -34,6 +35,10 @@ export class ParsedParameter extends GeneratorBase {
         }
     }
 
+    private cleanName(name: string, config: IConfig): string {
+        return config.cleanParamNames[name] || name;
+    }
+
     private createCustomParameterType(pps: IParameterProperty[], createDescription?: boolean): string {
         let ret = "{ ";
 
@@ -44,7 +49,7 @@ export class ParsedParameter extends GeneratorBase {
                     ret += this.getParamPropertyDescription(pp.description, pp.defaultValue);
                 }
 
-                ret += pp.name;
+                ret += this.cleanName(pp.name, this.config);
                 ret += pp.optional ? "?: " : ": ";
                 ret += this.getType(pp.type) + ", ";
             }

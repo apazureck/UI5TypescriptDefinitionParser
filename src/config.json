@@ -45,6 +45,8 @@
     "event": "any",
     "float": "number",
     "function": "(() => any)",
+    "function()": "(() => any)",
+    "(() &#x3D;& gt; any)": "(a: any, b: any) => boolean",
     "Generator": "any",
     "HTMLElement": "any",
     "int": "number",
@@ -105,9 +107,14 @@
     "true": "boolean",
     "undefined": "any",
     "Window": "any",
-    "{type:string,index:int}": "{type:string,index:number}"
+    "{type:string,index:int}": "{type:string,index:number}",
+    "Object.<string,function()>": "{[eventName: string]: () => any}",
+    "UriParameters": "jQuery.sap.util.UriParameters"
   },
-  "enums": {},
+  "enums": {
+    "sap.ui.model.BindingMode":
+    "declare namespace sap.ui.model { export type BindingMode = 'Default' | 'OneTime' | 'OneWay' | 'TwoWay'; }"
+  },
   "substitutedTypes": {
     "sap.ui.core.CSSSize":
       "declare namespace sap.ui.core {\n\texport type CSSSize = string;\n}",
@@ -115,21 +122,18 @@
       "declare namespace sap.ui.core {\n\texport type ID = string;\n}",
     "sap.ui.core.URI":
       "declare namespace sap.ui.core {\n\texport type URI = string;\n}",
-    "sap.ui.model.BindingMode":
-      "declare type sap.ui.model.BindingMode = 'Default' | 'OneTime' | 'OneWay' | 'TwoWay';"
+      "jQuery.sap.util.UriParameters": "declare namespace jQuery.sap.util { \n\texport type UriParameters = any\n}"
+  },
+  "cleanParamNames": {
+    "<code>vData</code>": "vData",
+    "&lt;your-page-object-name&gt;": "[key: string]"
   },
   "cacheApis": true,
   "logLevel": "Trace",
   "postProcessing": {
     "classes/sap/ui/base/ManagedObject": [
       {
-        "searchString":
-          "public static create(<code>vData</code>: ManagedObject|{}, oKeyInfo: {}, oScope: {}): void;",
-        "replacement":
-          "public static create(vData: ManagedObject|{}, oKeyInfo: {}, oScope: {}): void;"
-      },
-      {
-        "searchString": "public getModel(sName: string|any): Model;",
+        "searchString": "public getModel(sName: string | any): Model;",
         "replacement": "public getModel<T>(sName: string | any): Model<T>;"
       },
       {
@@ -137,6 +141,31 @@
         "replacement":
           "public setModel<T>(oModel: Model<T>, sName: string): this;"
       }
+    ],
+    "classes/sap/ui/base/EventProvider": [
+      {
+        "searchString": "protected getEventingParent(): this;",
+        "replacement": "protected getEventingParent(): EventProvider;"
+      },
+      {
+        "searchString": "public static getMetadata(): Metadata;",
+        "replacement": "public static getMetadata(): Metadata | any;"
+      }
+    ],
+    "classes/sap/ui/core/Element": [
+      {
+        "searchString": "public static create(<code>vData < /code>: ManagedObject|{}, oKeyInfo: {}, oScope: {}): void;",
+        "replacement": "public static create(vData: ManagedObject|{}, oKeyInfo: {}, oScope: {}): void;"
+      }
+    ],
+    "classes/sap/ui/model/Binding": [
+      {
+        "searchString": "public constructor(oModel: Model, sPath: string, oContext: Context, mParameters: {});",
+        "replacement": "public constructor(oModel: Model<T>, sPath: string, oContext: Context, mParameters: {});"
+      }
     ]
+  },
+  "ambientTypes": {
+    
   }
 }
