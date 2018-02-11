@@ -11,8 +11,17 @@ import { ParsedNamespace } from "./ParsedNamespace";
 import { ParsedParameter } from "./ParsedParameter";
 
 export class ParsedMethod extends GeneratorBase {
+  overloadedMethod: ParsedMethod;
   parameters: ParsedParameter[] = [];
   stubs: string[];
+
+  overloads(basemethod: ParsedMethod): ParsedMethod {
+    this.overloadedMethod = basemethod;
+    if(basemethod.returntype.type.indexOf(this.returntype.type) < 0) {
+      this.returntype.type = this.returntype.type + " | " + basemethod.returntype.type;
+    }
+    return basemethod;
+  }
 
   get name(): string {
     return this.wrappedMethod.name;
@@ -40,7 +49,7 @@ export class ParsedMethod extends GeneratorBase {
   ) {
     super(config);
     this.onAddImport = onAddImport;
-    this.createMethodStub(suppressReturnValue);
+    this.generateMethodParts(suppressReturnValue);
   }
 
   get parsedDescription(): string {
@@ -77,7 +86,7 @@ export class ParsedMethod extends GeneratorBase {
     return this.makeComment(ret);
   }
 
-  public static createMethodOverloads(
+  public static overloadLeadingOptionalParameters(
     method: IMethod,
     onAddImport: (type: string) => void,
     decorated: ILogDecorator,
@@ -153,113 +162,117 @@ export class ParsedMethod extends GeneratorBase {
 
   public GenericParameters: string[] = [];
 
-  private createMethodStub(suppressReturnValue?: boolean): void {
+  private generateMethodParts(suppressReturnValue?: boolean): void {
     try {
       // If method name starts with attach it is an event
       if (this.owner instanceof ParsedClass && this.name.startsWith("attach")) {
-        const eventname = /attach(.*)/.exec(this.name)[1].toLocaleLowerCase();
-        const objParam = this.wrappedMethod.parameters.find(
-          x => x.name === "oData"
-        );
-        if (objParam) {
-          this.IsGeneric = true;
-          objParam.type = "TcustomData";
-          this.GenericParameters.push(objParam.type);
-          this.parameters.push(
-            new ParsedParameter(
-              objParam,
-              this.owner.name,
-              undefined,
-              this.config,
-              this
-            )
-          );
-        }
-        const func = this.wrappedMethod.parameters.find(
-          x => x.name === "fnFunction"
-        );
-
-        const context = this.wrappedMethod.parameters.find(
-          x => x.name === "oListener"
-        );
-        if (context) {
-          context.type = "Tcontext";
-          this.IsGeneric = true;
-          this.GenericParameters.push(context.type);
-          this.parameters.push(
-            new ParsedParameter(
-              context,
-              this.owner.name,
-              undefined,
-              this.config,
-              this
-            )
-          );
-        }
-
-        if (func) {
-          const event = (this.owner as ParsedClass).events.find(
-            x => x.name.toLowerCase() === eventname
-          );
-          if (event) {
-            try {
-              func.type =
-                "(" + (context ? "this: Tcontext, " : "")
-                + "oEvent: " + event.parameters[0].type +
-                (objParam ? ", oCustomData?: TcustomData) => void" : ") => void");
-            } catch (error) {
-              let i = 0;
-            }
-          }
-          this.parameters.push(
-            new ParsedParameter(
-              func,
-              this.owner.name,
-              undefined,
-              this.config,
-              this
-            )
-          );
-
-          this.returntype = {
-            type: "this",
-            description: ""
-          };
-        }
+        this.makeAttachEventParameters();
       } else {
-        suppressReturnValue = suppressReturnValue || false;
-
-        if ((this.wrappedMethod.visibility as any) === "restricted") {
-          this.visibility = "private";
-        } else {
-          this.visibility = this.wrappedMethod.visibility;
-        }
-
-        if (this.wrappedMethod.parameters) {
-          this.parameters = this.wrappedMethod.parameters.map<ParsedParameter>(
-            (value, index, array) =>
-              new ParsedParameter(
-                value,
-                (this.owner as ParsedClass).name,
-                this.onAddImport,
-                this.config,
-                this
-              )
-          );
-        }
-
-        if (suppressReturnValue) {
-        } else if (this.wrappedMethod.returnValue) {
-          this.returntype = {
-            type: this.getType(this.wrappedMethod.returnValue.type),
-            description: this.wrappedMethod.returnValue.description
-          };
-        } else {
-          this.returntype = { type: "void", description: "" };
-        }
+          this.makeStandardMethodParameters(suppressReturnValue);
       }
     } catch (error) {
       throw error;
+    }
+  }
+
+    private makeStandardMethodParameters(suppressReturnValue?: boolean): void {
+        suppressReturnValue = suppressReturnValue || false;
+        if ((this.wrappedMethod.visibility as any) === "restricted") {
+            this.visibility = "private";
+        }
+        else {
+            this.visibility = this.wrappedMethod.visibility;
+        }
+        if (this.wrappedMethod.parameters) {
+            this.parameters = this.wrappedMethod.parameters.map<ParsedParameter>((value, index, array) => new ParsedParameter(value, (this.owner as ParsedClass).name, this.onAddImport, this.config, this));
+        }
+        if (suppressReturnValue) {
+        }
+        else if (this.wrappedMethod.returnValue) {
+            this.returntype = {
+                type: this.getType(this.wrappedMethod.returnValue.type),
+                description: this.wrappedMethod.returnValue.description
+            };
+        }
+        else {
+            this.returntype = { type: "void", description: "" };
+        }
+    }
+
+  private makeAttachEventParameters(): void {
+    const eventname = /attach(.*)/.exec(this.name)[1].toLocaleLowerCase();
+
+    // Check which parameters got used
+    let objParam = this.wrappedMethod.parameters.find(
+      x => x.name === "oData"
+    );
+    let func = this.wrappedMethod.parameters.find(
+      x => x.name === "fnFunction"
+    );
+    let context = this.wrappedMethod.parameters.find(
+      x => x.name === "oListener"
+    );
+
+    //add custom event payload parameter
+    if (objParam) {
+      const coparam = new ParsedParameter(
+          objParam,
+          this.owner.name,
+          undefined,
+          this.config,
+          this
+        )
+        this.parameters.push(coparam);
+
+      this.IsGeneric = true;
+      objParam.type = "TcustomData";
+      this.GenericParameters.push(objParam.type);
+    }
+
+    // add event function callback parameter
+    if (func) {
+      const event = (this.owner as ParsedClass).events.find(
+        x => x.name.toLowerCase() === eventname
+      );
+      const cfunc = new ParsedParameter(func, this.owner.name, undefined, this.config, this);
+      this.parameters.push(cfunc);
+      this.returntype = {
+        type: "this",
+        description: ""
+      };
+
+      if (event) {
+        try {
+          cfunc.type =
+            "(" +
+            (context ? "this: Tcontext, " : "this: this") +
+            "oEvent: " +
+            event.parameters[0].type  +
+            (objParam !== undefined ? (", oCustomData?: TcustomData) => void") : ") => void");
+            func.typeAlreadyProcessed = true;
+        } catch (error) {
+          let i = 0;
+        }
+      }
+    }
+
+    // Add context parameter
+    if (context) {
+      const cparam = new ParsedParameter(
+        context,
+        this.owner.name,
+        undefined,
+        this.config,
+        this
+      );
+
+      this.parameters.push(cparam);
+      
+      if (func) {
+        cparam.type = "Tcontext";
+        this.IsGeneric = true;
+        this.GenericParameters.push(cparam.type);
+      }
     }
   }
 

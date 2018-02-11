@@ -90,6 +90,7 @@ export interface IParameter {
     description?: string;
     optional?: boolean;
     parameterProperties: IParameterProperty[];
+    typeAlreadyProcessed?: boolean;
 }
 
 export interface IParameterProperty {

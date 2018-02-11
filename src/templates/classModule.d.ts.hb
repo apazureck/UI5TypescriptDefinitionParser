@@ -32,21 +32,6 @@ export default class {{name}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}
 {{/each}}
 {{~/if}}
 
-{{#if events.length}}
-    {{#each events}}
-    /**
-     {{this.parsedDescription}}
-    */
-    {{this.visibility}} {{this.name}}: ({{#if this.parameters.length~}}{{this.parameters.0.name}}: 
-            {{~#if this.parameters.0.hasCustomEventHandler~}}
-                {{this.parameters.0.type}}
-            {{~else~}}
-                any
-            {{~/if~}}
-        {{/if}}) => void;
-    {{/each}}
-{{/if}}
-
 {{#if methods.length~}}
 {{#each methods}}
 /**
@@ -55,10 +40,10 @@ export default class {{name}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}
 {{this.visibility}} {{#if this.isStatic}}static {{/if}}{{this.name}}{{#if this.IsGeneric}}<{{#each this.GenericParameters}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}>{{/if}}(
     {{~#if this.parameters.length~}}
     {{~#each this.parameters~}}
-        {{#unless @first}} {{/unless}}{{this.name}}: {{this.type}}{{#unless @last}},{{/unless}}
+        {{#unless @first}} {{/unless}}{{this.name}}{{#if this.optional}}?{{/if}}: {{this.type}}{{#unless @last}},{{/unless}}
     {{~/each~}}
     {{~/if~}}
-){{#if this.returntype}}: {{#ifCond ../name '==' this.returntype.type}}this{{else}}{{this.returntype.type}}{{/ifCond}}{{/if}};
+){{#if this.returntype}}: {{#ifIsThis this.returntype.type}}this{{else}}{{this.returntype.type}}{{/ifIsThis}}{{/if}};
 
 {{/each}}
 {{~/if}}

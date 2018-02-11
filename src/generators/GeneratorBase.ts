@@ -1,5 +1,14 @@
 import { IConfig, ILogDecorator } from "../types";
 import * as Handlebars from "handlebars";
+import * as htmltomd from "html-to-markdown";
+import * as jsdoc2md from "jsdoc-to-markdown";
+
+htmltomd.use((html: string) => {
+  return html.replace(/(<code>|<\/code>)/g, "`")
+});
+htmltomd.use((html: string) => {
+  return html.replace(/(<\/br>|<br\/>)/g, "\n");
+})
 
 export abstract class GeneratorBase implements ILogDecorator {
   protected readonly typeSeparators = /[\.\/]/g;
@@ -106,7 +115,7 @@ export abstract class GeneratorBase implements ILogDecorator {
 
 export function styleJsDoc(text: string): string {
   if (!text) return "";
-  return text.replace(/(<code>|<\/code>)/g, "`").replace(/(<b>|<\/b>)/g, "**");
+  return htmltomd.convert(text);
 }
 
 export function makeComment(description: string): string {

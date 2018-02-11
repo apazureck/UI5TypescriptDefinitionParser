@@ -41,7 +41,7 @@ export interface IConfig {
         [key: string]: string;
     }
     cacheApis: boolean;
-    logLevel: LogLevel;
+    logLevel: string;
 
     postProcessing: {
         [fileName: string]: {

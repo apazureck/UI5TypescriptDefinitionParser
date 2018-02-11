@@ -1,12 +1,12 @@
 import * as events from "events";
 import { IConfig, IImport, ILogDecorator } from "../../types";
-import { ISymbol, IParameter, IProperty } from '../../UI5DocumentationTypes';
+import { ISymbol, IParameter, IProperty } from "../../UI5DocumentationTypes";
 import { GeneratorBase } from "../GeneratorBase";
 import { ParsedEvent } from "./ParsedEvent";
-import { ParsedMethod } from './ParsedMethod';
+import { ParsedMethod } from "./ParsedMethod";
 import * as Handlebars from "handlebars";
 import * as hbex from "../../handlebarsExtensions";
-import { ParsedParameter } from './ParsedParameter';
+import { ParsedParameter } from "./ParsedParameter";
 
 interface IClass {
   constructors: ParsedMethod[];
@@ -33,7 +33,8 @@ export class ParsedClass extends GeneratorBase implements IClass {
 
   get namespace(): string {
     const ret = this.documentClass.name.split(".");
-    return ret.splice(ret.length-1, 1).join(".");
+    ret.pop();
+    return ret.join(".");
   }
 
   get moduleName(): string {
@@ -123,9 +124,9 @@ export class ParsedClass extends GeneratorBase implements IClass {
 
     // 5. Create methods
     if (this.documentClass.methods) {
-      this.documentClass.methods.forEach((value, index, array) => {
+      for (const value of this.documentClass.methods) {
         this.methods = this.methods.concat(
-          ParsedMethod.createMethodOverloads(
+          ParsedMethod.overloadLeadingOptionalParameters(
             value,
             this.onAddImport.bind(this),
             this,
@@ -133,7 +134,7 @@ export class ParsedClass extends GeneratorBase implements IClass {
             this
           )
         );
-      });
+      }
     } else {
       this.methods = [];
     }
@@ -148,7 +149,7 @@ export class ParsedClass extends GeneratorBase implements IClass {
             "I" + this.documentClass.basename + "Settings";
         }
 
-        this.constructors = ParsedMethod.createMethodOverloads(
+        this.constructors = ParsedMethod.overloadLeadingOptionalParameters(
           this.documentClass.constructor,
           this.onAddImport.bind(this),
           this,
@@ -232,15 +233,30 @@ export class ParsedClass extends GeneratorBase implements IClass {
   }
 
   public createOverloads(): void {
-    this.log("Creating overloads");
-    for (const basemethod of this.baseclass.methods) {
-      if (
-        this.methods.some(
-          (value, index, array) => value.IsOverload(basemethod))
-      ) {
-        this.methods.push(basemethod);
-      }
-    }
+    this.log("Creating overloads for all base classes, if necessary.");
+    const thismethods = this.methods;
+    getOverloadFromBaseClass(this.methods, this.baseclass);
     this.methods = this.methods.sort((a, b) => a.name.localeCompare(b.name));
   }
+}
+
+function getOverloadFromBaseClass(
+  methods: ParsedMethod[],
+  baseclass: ParsedClass
+): void {
+  if (!baseclass) {
+    return;
+  }
+  for (const basemethod of baseclass.methods) {
+    const overload = methods.find((value, index, array) =>
+      value.IsOverload(basemethod)
+    );
+    if (overload) {
+      const original = overload.overloads(basemethod);
+      if (original) {
+        methods.push(original);
+      }
+    }
+  }
+  getOverloadFromBaseClass(methods, baseclass.baseclass);
 }

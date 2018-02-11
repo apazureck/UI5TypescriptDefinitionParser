@@ -121,3 +121,25 @@ export enum LogLevel {
   Fatal,
   None
 }
+
+export namespace LogLevel {
+  export function getValue(enumString: string) {
+    enumString = enumString.toLowerCase();
+    switch (enumString) {
+      case "trace":
+        return 0;
+      case "debug":
+        return 1;
+      case "info":
+        return 2;
+      case "warning":
+        return 3;
+      case "error":
+        return 4;
+      case "none":
+        return 5;
+      default:
+        throw new Error("Unknown vaule " + enumString);
+    }
+  }
+}

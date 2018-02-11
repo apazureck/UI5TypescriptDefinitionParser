@@ -112,17 +112,16 @@
     "UriParameters": "jQuery.sap.util.UriParameters"
   },
   "enums": {
-    "sap.ui.model.BindingMode":
-    "declare namespace sap.ui.model { export type BindingMode = 'Default' | 'OneTime' | 'OneWay' | 'TwoWay'; }"
   },
   "substitutedTypes": {
     "sap.ui.core.CSSSize":
-      "declare namespace sap.ui.core {\n\texport type CSSSize = string;\n}",
+      "declare namespace sap.ui.core {\nexport type CSSSize = string;\n}",
     "sap.ui.core.ID":
-      "declare namespace sap.ui.core {\n\texport type ID = string;\n}",
+      "declare namespace sap.ui.core {\nexport type ID = string;\n}",
     "sap.ui.core.URI":
-      "declare namespace sap.ui.core {\n\texport type URI = string;\n}",
-      "jQuery.sap.util.UriParameters": "declare namespace jQuery.sap.util { \n\texport type UriParameters = any\n}"
+      "declare namespace sap.ui.core {\nexport type URI = string;\n}",
+    "sap.ui.model.ModelName":
+      "declare namespace sap.ui.model {\nexport type Modelname = string;\n}"
   },
   "cleanParamNames": {
     "<code>vData</code>": "vData",
@@ -134,7 +133,7 @@
     "classes/sap/ui/base/ManagedObject": [
       {
         "searchString": "public getModel(sName: string | any): Model;",
-        "replacement": "public getModel<T>(sName: string | any): Model<T>;"
+        "replacement": "public getModel<T>(sName: string): Model<T>;"
       },
       {
         "searchString": "public setModel(oModel: Model, sName: string): this;",
@@ -154,18 +153,55 @@
     ],
     "classes/sap/ui/core/Element": [
       {
-        "searchString": "public static create(<code>vData < /code>: ManagedObject|{}, oKeyInfo: {}, oScope: {}): void;",
-        "replacement": "public static create(vData: ManagedObject|{}, oKeyInfo: {}, oScope: {}): void;"
+        "searchString":
+          "public static create(<code>vData < /code>: ManagedObject|{}, oKeyInfo: {}, oScope: {}): void;",
+        "replacement":
+          "public static create(vData: ManagedObject|{}, oKeyInfo: {}, oScope: {}): void;"
       }
     ],
     "classes/sap/ui/model/Binding": [
       {
-        "searchString": "public constructor(oModel: Model, sPath: string, oContext: Context, mParameters: {});",
-        "replacement": "public constructor(oModel: Model<T>, sPath: string, oContext: Context, mParameters: {});"
+        "searchString":
+          "public constructor(oModel: Model, sPath: string, oContext: Context, mParameters: {});",
+        "replacement":
+          "public constructor(oModel: Model<T>, sPath: string, oContext: Context, mParameters: {});"
+      }
+    ],
+    "classes/sap/ui/core/Core": [
+      {
+        "searchString": "public getModel(sName: string | any): Model;",
+        "replacement":
+          "public getModel<T>(sName: sap.ui.model.ModelName): Model<T>;"
+      }
+    ],
+    "classes/sap/ui/model/Model": [
+      {
+        "searchString": "(\\W)Model([^\\w\\/\\.'`])",
+          "replacement": "$1Model<T>$2",
+          "isRegex": true,
+          "regexFlags": "g"
+      },
+      {
+        "searchString": "public getProperty(sPath: string, oContext: {}): void;",
+        "replacement": "public getOriginalProperty<K extends keyof T>(sPath: K, oContext: {}): T[K];"
+      },
+      {
+        "searchString": "public getOriginalProperty(sPath: string, oContext: {}): any;",
+        "replacement": "public getOriginalProperty<K extends keyof T>(sPath: K, oContext: {}): T[K];"
+      },
+      {
+        "searchString": "public isBindingModeSupported(sMode: sap.ui.model.BindingMode): void;",
+        "replacement": "public isBindingModeSupported(sMode: sap.ui.model.BindingMode): boolean;"
+      }
+    ],
+    "classes/sap/ui/base/Event": [
+      {
+        "searchString": "(\\W)Event([^\\w\\/\\.'`])",
+        "replacement": "$1Event<Tsource, Tparameters>$2",
+        "isRegex": true,
+        "regexFlags": "g"
       }
     ]
   },
-  "ambientTypes": {
-    
-  }
+  "ambientTypes": {}
 }

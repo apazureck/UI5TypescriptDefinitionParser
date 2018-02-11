@@ -1,4 +1,4 @@
-declare namespace '{{namespace}}' {
+declare namespace {{namespace}} {
 
 {{#if description}}/**
 {{parsedDescription}}
@@ -11,7 +11,7 @@ export interface {{name}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}{
     /**
      {{this.parsedDescription}}
     */
-    {{this.visibility}} {{this.name}}: ({{#if this.parameters.length~}}{{this.parameters.0.name}}: 
+    {{this.name}}: ({{#if this.parameters.length~}}{{this.parameters.0.name}}: 
             {{~#if this.parameters.0.hasCustomEventHandler~}}
                 {{this.parameters.0.type}}
             {{~else~}}
@@ -26,7 +26,7 @@ export interface {{name}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}{
 /**
     {{documentThis this.description}}
 */
-{{this.visibility}} {{#if this.isStatic}}static {{/if}}{{this.name}}(
+{{#if this.isStatic}}static {{/if}}{{this.name}}(
     {{~#if this.parameters.length~}}
     {{~#each this.parameters~}}
         {{#unless @first}} {{/unless}}{{this.name}}: {{this.type}}{{#unless @last}},{{/unless}}
