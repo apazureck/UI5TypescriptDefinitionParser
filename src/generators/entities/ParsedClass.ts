@@ -17,6 +17,15 @@ interface IClass {
 }
 
 export class ParsedClass extends GeneratorBase implements IClass {
+  getConfig(): IConfig {
+    return this.config;
+  }
+  getAddImport(): (
+    typeOrModule: string,
+    context?: "static"
+  ) => string {
+    return this.onAddImport.bind(this);
+  }
   constructor(
     private documentClass: ISymbol,
     private classTemplate: string,
@@ -216,7 +225,7 @@ export class ParsedClass extends GeneratorBase implements IClass {
     const modulename = typeOrModule.split(this.typeSeparators);
     const fullModuleName = modulename.join("/");
 
-    if(this.fullName === fullModuleName) {
+    if (this.fullName === fullModuleName) {
       return context === "static" ? this.name : "this";
     }
 
@@ -277,28 +286,35 @@ export class ParsedClass extends GeneratorBase implements IClass {
   public createOverloads(): void {
     this.log("Creating overloads for all base classes, if necessary.");
     const thismethods = this.methods;
-    getOverloadFromBaseClass(this.methods, this.baseclass);
+    getOverloadFromBaseClass(this, this.baseclass);
     this.methods = this.methods.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  public pushMethodFromBaseClass(baseMethod: ParsedMethod): void {
+    for (const param of baseMethod.parameters) {
+      param.addImports(this);
+    }
+    this.methods.push(baseMethod)
   }
 }
 
 function getOverloadFromBaseClass(
-  methods: ParsedMethod[],
+  childclass: ParsedClass,
   baseclass: ParsedClass
 ): void {
   if (!baseclass) {
     return;
   }
   for (const basemethod of baseclass.methods) {
-    const overload = methods.find((value, index, array) =>
+    const overload = childclass.methods.find((value, index, array) =>
       value.IsOverload(basemethod)
     );
     if (overload) {
-      const original = overload.overloads(basemethod);
+      const original = overload.overload(basemethod);
       if (original) {
-        methods.push(original);
+        childclass.pushMethodFromBaseClass(original);
       }
     }
   }
-  getOverloadFromBaseClass(methods, baseclass.baseclass);
+  getOverloadFromBaseClass(childclass, baseclass.baseclass);
 }

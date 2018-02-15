@@ -44,7 +44,7 @@ export class {{name}} {{#if baseclass}}extends {{baseclass.name}}{{#ifCond basec
         {{#unless @first}} {{/unless}}{{this.name}}{{#if this.optional}}?{{/if}}: {{this.type}}{{#unless @last}},{{/unless}}
     {{~/each~}}
     {{~/if~}}
-){{#if this.returntype}}: {{#ifIsThis this.returntype.type}}this{{else}}{{this.returntype.type}}{{/ifIsThis}}{{/if}};
+){{#if this.returntype}}: {{this.returntype.type}}{{/if}};
 
 {{/each}}
 {{~/if}}

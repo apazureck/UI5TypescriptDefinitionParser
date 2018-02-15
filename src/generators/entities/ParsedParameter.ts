@@ -1,6 +1,7 @@
 import { IConfig, ILogDecorator } from "../../types";
 import { IParameter, IParameterProperty } from "../../UI5DocumentationTypes";
 import { GeneratorBase } from "../GeneratorBase";
+import { ParsedClass } from "./ParsedClass";
 
 export class ParsedParameter extends GeneratorBase {
   private customType = false;
@@ -11,7 +12,7 @@ export class ParsedParameter extends GeneratorBase {
   }
   constructor(
     private param: IParameter,
-    className: string,
+    private className: string,
     addImport: (type: string) => string,
     config: IConfig,
     private decorated: ILogDecorator,
@@ -107,6 +108,14 @@ export class ParsedParameter extends GeneratorBase {
       (defaultvalue ? "\n * @default " + defaultvalue.toString() + "\n" : "") +
       " */\n"
     );
+  }
+
+  addImports(owner: ParsedClass): void {
+    new ParsedParameter(this.raw,
+      this.className,
+      owner.getAddImport(),
+      owner.getConfig(),
+      owner)
   }
 
   get name(): string {

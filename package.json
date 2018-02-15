@@ -4,7 +4,8 @@
   "description": "Parses typescript definitions",
   "main": "run.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "preinstall": "npm install -g typescript-formatter"
   },
   "repository": {
     "type": "git",
@@ -48,6 +49,7 @@
     "path": "^0.12.7",
     "progress": "^1.1.8",
     "typed-rest-client": "^0.10.0",
-    "typescript-formatter": "^7.0.1"
+    "typescript-formatter": "^7.0.1",
+    "jsonpath": "^1.0.0"
   }
 }

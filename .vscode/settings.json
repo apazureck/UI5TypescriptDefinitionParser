@@ -2,10 +2,13 @@
 {
     "tslint.enable": true,
     "tslint.alwaysShowRuleFailuresAsWarnings": true,
-    "search.exclude":{
+    "search.exclude": {
         "**/node_modules": true,
         "**/bower_components": true,
         "**/*.js": true,
         "**/out": true
+    },
+    "files.associations": {
+        "*.hb": "handlebars"
     }
 }

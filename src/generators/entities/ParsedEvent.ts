@@ -48,7 +48,8 @@ export class ParsedEvent extends GeneratorBase {
             className,
             this.onAddImport,
             this.config,
-            this
+            this,
+            "static"
           )
         );
       } else if (
@@ -104,7 +105,7 @@ export class ParsedEvent extends GeneratorBase {
 
     if (parameters) {
       for (const param of parameters) {
-        ret += `@param {${this.getType(param.type)}} ${
+        ret += `@param {${this.getType(param.type, "static")}} ${
           param.optional ? "[" : ""
         }${param.name}${param.optional ? "]" : ""} ${param.description}\n`;
       }

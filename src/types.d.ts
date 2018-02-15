@@ -2,6 +2,13 @@ import { ISymbol } from "./UI5DocumentationTypes";
 import { LogLevel } from "./log";
 
 export interface IConfig {
+  preProcessing: {
+    [jpath: string]: {
+      jsonpath: string,
+      comment: string,
+      script: string,
+    },
+  }
   connection: {
     root: string;
     endpoints: string[];

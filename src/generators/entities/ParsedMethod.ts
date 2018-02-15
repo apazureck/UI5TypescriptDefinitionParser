@@ -73,10 +73,10 @@ export class ParsedMethod extends GeneratorBase {
       for (const param of parameters) {
         ret += `@param {${this.getType(
           param.type,
-          this.isStatic ? "static" : undefined
+          "static"
         )}} ${param.optional ? "[" : ""}${param.name}${
           param.optional ? "]" : ""
-        } ${param.description}\n`;
+          } ${param.description}\n`;
       }
     }
 
@@ -188,7 +188,7 @@ export class ParsedMethod extends GeneratorBase {
             this.onAddImport,
             this.config,
             this,
-            this.isStatic ? "static" : undefined
+            "static"
           )
       );
     }
@@ -235,7 +235,7 @@ export class ParsedMethod extends GeneratorBase {
         undefined,
         this.config,
         this,
-        this.isStatic ? "static" : undefined
+        "static"
       );
       this.parameters.push(coparam);
 
@@ -255,7 +255,7 @@ export class ParsedMethod extends GeneratorBase {
         undefined,
         this.config,
         this,
-        this.isStatic ? "static" : undefined
+        "static"
       );
       this.parameters.push(cfunc);
       this.returntype = {
@@ -363,16 +363,20 @@ export class ParsedMethod extends GeneratorBase {
   }
 
   public IsOverload(method: ParsedMethod) {
-    if (this.name !== method.name) return false;
+    if (this.name !== method.name)
+      return false;
     if (this.parameters.length === method.parameters.length) {
       for (let i = 0; i < this.parameters.length; i++) {
         const thisParam = this.parameters[i];
-        if (thisParam.type !== method.parameters[i].type) return true;
+        if (thisParam.type !== method.parameters[i].type)
+          return true;
       }
-      return false;
     }
 
-    return true;
+    if (this.returntype.type !== method.returntype.type)
+      return true;
+
+    return false;
   }
 
   /**
@@ -382,7 +386,8 @@ export class ParsedMethod extends GeneratorBase {
    * @returns {ParsedMethod} The (modified?) base method
    * @memberof ParsedMethod
    */
-  overloads(basemethod: ParsedMethod): ParsedMethod {
+  overload(basemethod: ParsedMethod): ParsedMethod {
+    this.visibility = basemethod.visibility;
     this.importBaseMethodParameters(basemethod.parameters);
     this.wrappedMethod.description +=
       "\n\n_Overloads " +
@@ -395,7 +400,7 @@ export class ParsedMethod extends GeneratorBase {
 
   private importBaseMethodParameters(parameters: ParsedParameter[]) {
     for (const param of parameters) {
-      this.getType(param.raw.type, this.isStatic ? "static" : undefined);
+      this.getType(param.raw.type, "static");
     }
   }
   private mergeBaseType(basemethod: ParsedMethod) {

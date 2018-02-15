@@ -17,12 +17,20 @@ import * as ts from "typescript";
 import { Log, LogLevel } from "./log";
 import * as ProgressBar from "progress";
 import * as glob from "glob-all";
+import * as jpath from "jsonpath"
 
 const startTime = Date.now();
 Log.activate((message, level) => {
   const curTime = Date.now();
   console.log(curTime - startTime + " - " + message);
 });
+
+interface IObservedApis {
+  [endpoint: string]: {
+    loaded: boolean;
+    api?: IApi;
+  };
+}
 
 /**
  *
@@ -31,16 +39,40 @@ Log.activate((message, level) => {
  * @class Parser
  */
 export class Parser implements ILogDecorator {
+  preprocessApis(apis: IObservedApis): void {
+    this.logger.Info("Running preprocessing");
+    const apicount = Object.keys(apis).length;
+    for (const entry in this.config.preProcessing) {
+      this.logger.Info("Running '" + entry + "'");
+      const ppitem = this.config.preProcessing[entry];
+      if (ppitem.comment) {
+        this.logger.Info(ppitem.comment);
+      }
+      let bar = createNewProgressBar("Processing", apicount, ["api: :api"])
+      const func = new Function("val", `${ppitem.script}\nreturn val;`);
+      let debugwrapper = (val):void => {
+        return func(val);
+      };
+      for (const endpointname in apis) {
+        try {
+          const api = apis[endpointname];
+          const paths = jpath.paths(api.api, ppitem.jsonpath)
+          for (const path of paths) {
+            jpath.apply(api.api, jpath.stringify(path), debugwrapper);
+          }
+          bar.tick({ "api": endpointname });
+        } catch (error) {
+          this.logger.Error("Error preprocessing");
+          this.logger.Error(JSON.stringify(error));
+        }
+      }
+    }
+  }
   allInterfaces: ParsedClass[] = [];
   private config: IConfig;
   private outfolder: string;
 
-  private observedAPIs: {
-    [endpoint: string]: {
-      loaded: boolean;
-      api?: IApi;
-    };
-  } = {};
+  private observedAPIs: IObservedApis = {};
 
   private currentApi: IApi;
   private logger: Log;
@@ -75,7 +107,7 @@ export class Parser implements ILogDecorator {
           } else {
             this.logger.Info(
               "No cached file found, requesting from " +
-                this.config.connection.root
+              this.config.connection.root
             );
             this.observedAPIs[endpoint] = {
               loaded: false
@@ -183,6 +215,9 @@ export class Parser implements ILogDecorator {
   }
 
   private async generate() {
+
+    this.preprocessApis(this.observedAPIs);
+
     this.logger.Info("Creating ambient type map");
     this.createAmbientDictionary(this.observedAPIs);
 
@@ -329,9 +364,9 @@ export class Parser implements ILogDecorator {
 
     this.log(
       "Created " +
-        info.generatedClassCount +
-        " interfaces of Library " +
-        api.library
+      info.generatedClassCount +
+      " interfaces of Library " +
+      api.library
     );
     return info;
   }
@@ -352,11 +387,11 @@ export class Parser implements ILogDecorator {
         } catch (error) {
           this.logger.Error(
             "Error occurred during postprocessing " +
-              file +
-              " with post processor " +
-              moduleName +
-              ": " +
-              JSON.stringify(error)
+            file +
+            " with post processor " +
+            moduleName +
+            ": " +
+            JSON.stringify(error)
           );
         }
       }
@@ -392,18 +427,9 @@ export class Parser implements ILogDecorator {
       }
     };
     return new Promise<void>((resolve, reject) => {
-      console.log();
-      var bar = new ProgressBar("Scanning APIs [:bar] :percent :etas", {
-        complete: "=",
-        incomplete: ".",
-        width: 50,
-        total: apicount
-      });
+      let bar = createNewProgressBar("Scanning APIs", apicount);
       for (const endpoint in this.observedAPIs) {
         bar.tick();
-        if(bar.complete) {
-          console.log("done");
-        }
         if (endpoint) {
           this.getClasses(this.observedAPIs[endpoint].api).then(() =>
             apifinished(resolve)
@@ -414,22 +440,13 @@ export class Parser implements ILogDecorator {
   }
 
   private async ParseAllClasses(allClasses: ParsedClass[]): Promise<void> {
-    console.log();
-    var bar = new ProgressBar("Creating class files [:bar] :percent :etas", {
-      complete: "=",
-      incomplete: ".",
-      width: 50,
-      total: allClasses.length
-    });
     return new Promise<void>(async (resolve, reject) => {
+      let bar = createNewProgressBar("Creating class files", allClasses.length);
       const classcount = allClasses.length;
       let generatedclasses = 0;
       for (const c of allClasses) {
         try {
           bar.tick();
-          if (bar.complete) {
-            console.log("done");
-          }
           await this.ParseClass(c);
           generatedclasses++;
           if (!(generatedclasses < classcount)) {
@@ -462,7 +479,6 @@ export class Parser implements ILogDecorator {
     });
   }
   private async ParseClass(c: ParsedClass): Promise<void> {
-    // bar.tick(1);
     const filepath = path.join(this.outfolder, "classes", c.fullName + ".d.ts");
     this.log("Creating class " + filepath);
     try {
@@ -482,7 +498,6 @@ export class Parser implements ILogDecorator {
   }
 
   private async ParseInterface(c: ParsedClass): Promise<void> {
-    // bar.tick(1);
     const filepath = path.join(
       this.outfolder,
       "interfaces",
@@ -521,19 +536,11 @@ export class Parser implements ILogDecorator {
       (value, index, array) => !value.baseclass
     );
     this.logger.Info("Pushing overloads for classes.");
-    var bar = new ProgressBar("  Pushing Overloads [:bar] :percent :etas", {
-      complete: "=",
-      incomplete: ".",
-      width: 50,
-      total: baseclasses.length
-    });
+    var bar = createNewProgressBar("Pushing overloads", baseclasses.length);
     for (const bc of baseclasses) {
       bar.tick();
-      if(bar.complete)
-        console.log("done");
       bc.pushOverloads();
     }
-    console.log("\n");
     this.logger.Info("Overloads done");
   }
 
@@ -635,10 +642,6 @@ export class Parser implements ILogDecorator {
             this.allClasses.push(
               new ParsedClass(s, this.classTemplate, this.config, this)
             );
-            // Write to file
-            // TODO: Create folder structure
-            // fs.writeFileSync(path.join(this.outfolder, "classes", s.name + ".d.ts"), cstring, 'utf-8');
-            // this.log("Created Declaration for class '" + s.name + "'");
             info.generatedClassCount++;
             break;
           case "namespace":
@@ -653,9 +656,9 @@ export class Parser implements ILogDecorator {
 
     this.log(
       "Created " +
-        info.generatedClassCount +
-        " classes of Library " +
-        api.library
+      info.generatedClassCount +
+      " classes of Library " +
+      api.library
     );
     return info;
   }
@@ -714,11 +717,11 @@ export class Parser implements ILogDecorator {
     if (sourceStack) {
       this.logger.Debug(
         "Library '" +
-          this.currentApi.library +
-          "' -> " +
-          sourceStack +
-          ": " +
-          message
+        this.currentApi.library +
+        "' -> " +
+        sourceStack +
+        ": " +
+        message
       );
     } else {
       this.logger.Debug(
@@ -737,5 +740,14 @@ function MakeDirRecursiveSync(dirpath): Promise<void> {
         resolve();
       }
     });
+  });
+}
+
+function createNewProgressBar(title: string, endcount: number, tokens?: string[]): ProgressBar {
+  return new ProgressBar(title + (tokens ? (": " + tokens.join(" ")) : " ") + "[:bar] :percent :etas", {
+    complete: "=",
+    incomplete: ".",
+    width: 50,
+    total: endcount
   });
 }
