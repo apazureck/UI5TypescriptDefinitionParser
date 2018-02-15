@@ -14,7 +14,8 @@ export class ParsedParameter extends GeneratorBase {
     className: string,
     addImport: (type: string) => string,
     config: IConfig,
-    private decorated: ILogDecorator
+    private decorated: ILogDecorator,
+    private context?: "static"
   ) {
     super(config);
     param.name = this.cleanName(param.name, config);
@@ -34,7 +35,7 @@ export class ParsedParameter extends GeneratorBase {
 
   getType(originType: string): string {
     if (this.param.typeAlreadyProcessed) return this.param.type;
-    else return super.getType(originType);
+    else return super.getType(originType, this.context);
   }
 
   private createEventType(

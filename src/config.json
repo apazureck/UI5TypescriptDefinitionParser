@@ -115,7 +115,9 @@
     "Array.<[object Object]>": "{}[]",
     "Object.<string,string>": "{[key: string]: string}",
     "IBar": "sap.m.IBar",
-    "IBarHTMLTag": "sap.m.IBarHTMLTag"
+    "IBarHTMLTag": "sap.m.IBarHTMLTag",
+    "sap.ui.commons.form.SimpleFormLayout": "sap.ui.layout.form.SimpleFormLayout",
+    "sap.ui.commons.TitleLevel": "sap.ui.core.TitleLevel"
   },
   "enums": {
     "sap.ui.core.Popup.Dock": {}
@@ -136,7 +138,9 @@
       "declare namespace jQuery.sap.log {\nexport type Logger = {};\n}",
     "sap.ui.core.CSSColor":
       "declare namespace sap.ui.core {\nexport type CSSColor = string;\n}",
-      "sap.ui.core.Dock": "declare namespace sap.ui.core {\nexport type Dock = 'begin top' | 'begin center' | 'begin bottom' | 'left top' | 'left center' | 'left bottom' | 'right top' | 'right center' | 'right bottom' | 'center top' | 'center center' | 'center bottom' | 'end top' | 'end center' | 'end bottom'\n}"
+      "sap.ui.core.Dock": "declare namespace sap.ui.core {\nexport type Dock = 'begin top' | 'begin center' | 'begin bottom' | 'left top' | 'left center' | 'left bottom' | 'right top' | 'right center' | 'right bottom' | 'center top' | 'center center' | 'center bottom' | 'end top' | 'end center' | 'end bottom'\n}",
+      "sap.ui.core.Percentage": "declare namespace sap.ui.core {\nexport type Percentage = string;\n}",
+        "sap.ui.commons.SplitterSize": "declare namespace sap.ui.commons {\nexport type SplitterSize = string;\n}"
   },
   "cleanParamNames": {
     "<code>vData</code>": "vData",
@@ -184,6 +188,14 @@
       {
         "searchString": "static (?!extend|getMetadata)",
         "replacement": "",
+        "isRegex": true,
+        "regexFlags": "g"
+      }
+    ],
+    "classes/sap/ui/commons/**/*": [
+      {
+        "searchString": "protected (clone|getDomRef|invalidate)\\(",
+        "replacement": "public $1(",
         "isRegex": true,
         "regexFlags": "g"
       }

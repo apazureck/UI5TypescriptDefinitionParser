@@ -34,7 +34,7 @@ export class ParsedMethod extends GeneratorBase {
 
   constructor(
     private wrappedMethod: IMethod,
-    onAddImport: (type: string) => string,
+    onAddImport: (type: string, context?: string) => string,
     private decorated: ILogDecorator,
     config: IConfig,
     private owner: ParsedClass | ParsedNamespace,
@@ -63,16 +63,20 @@ export class ParsedMethod extends GeneratorBase {
     }
 
     if (returnValue) {
-      ret += `@return {${this.getType(returnValue.type)}} ${
-        returnValue.description
-      }\n`;
+      ret += `@return {${this.getType(
+        returnValue.type,
+        this.isStatic ? "static" : undefined
+      )}} ${returnValue.description}\n`;
     }
 
     if (parameters) {
       for (const param of parameters) {
-        ret += `@param {${this.getType(param.type)}} ${
-          param.optional ? "[" : ""
-        }${param.name}${param.optional ? "]" : ""} ${param.description}\n`;
+        ret += `@param {${this.getType(
+          param.type,
+          this.isStatic ? "static" : undefined
+        )}} ${param.optional ? "[" : ""}${param.name}${
+          param.optional ? "]" : ""
+        } ${param.description}\n`;
       }
     }
 
@@ -176,20 +180,24 @@ export class ParsedMethod extends GeneratorBase {
       this.visibility = this.wrappedMethod.visibility;
     }
     if (this.wrappedMethod.parameters) {
-      this.parameters = this.wrappedMethod.parameters.map<ParsedParameter>(
+      this.parameters = this.wrappedMethod.parameters.map(
         (value, index, array) =>
           new ParsedParameter(
             value,
             (this.owner as ParsedClass).name,
             this.onAddImport,
             this.config,
-            this
+            this,
+            this.isStatic ? "static" : undefined
           )
       );
     }
     if (suppressReturnValue) {
     } else if (this.wrappedMethod.returnValue) {
-      let rtype = this.getType(this.wrappedMethod.returnValue.type);
+      let rtype = this.getType(
+        this.wrappedMethod.returnValue.type,
+        this.isStatic ? "static" : undefined
+      );
       this.returntype = {
         type: rtype,
         rawTypes: {},
@@ -226,7 +234,8 @@ export class ParsedMethod extends GeneratorBase {
         this.owner.name,
         undefined,
         this.config,
-        this
+        this,
+        this.isStatic ? "static" : undefined
       );
       this.parameters.push(coparam);
 
@@ -245,7 +254,8 @@ export class ParsedMethod extends GeneratorBase {
         this.owner.name,
         undefined,
         this.config,
-        this
+        this,
+        this.isStatic ? "static" : undefined
       );
       this.parameters.push(cfunc);
       this.returntype = {
@@ -278,7 +288,8 @@ export class ParsedMethod extends GeneratorBase {
         this.owner.name,
         undefined,
         this.config,
-        this
+        this,
+        this.isStatic ? "static" : undefined
       );
 
       this.parameters.push(cparam);
@@ -314,7 +325,12 @@ export class ParsedMethod extends GeneratorBase {
 
     ret += ")";
     if (!this.suppressReturnValue) {
-      ret += ": " + this.getType(this.returntype.type);
+      ret +=
+        ": " +
+        this.getType(
+          this.returntype.type,
+          this.isStatic ? "static" : undefined
+        );
     }
     ret += ";";
     return ret;
@@ -379,7 +395,7 @@ export class ParsedMethod extends GeneratorBase {
 
   private importBaseMethodParameters(parameters: ParsedParameter[]) {
     for (const param of parameters) {
-      this.getType(param.raw.type);
+      this.getType(param.raw.type, this.isStatic ? "static" : undefined);
     }
   }
   private mergeBaseType(basemethod: ParsedMethod) {
@@ -390,7 +406,10 @@ export class ParsedMethod extends GeneratorBase {
     thistypes = _.uniq(thistypes.concat(basetypes));
     this.returntype.type = thistypes
       .map(x => {
-        const tshort = this.getType(basemethod.returntype.rawTypes[x] || x);
+        const tshort = this.getType(
+          basemethod.returntype.rawTypes[x] || x,
+          this.isStatic ? "static" : undefined
+        );
         if (basemethod.returntype.rawTypes[x])
           this.returntype.rawTypes[x] = basemethod.returntype.rawTypes[x];
         return x;

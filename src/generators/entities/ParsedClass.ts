@@ -191,14 +191,22 @@ export class ParsedClass extends GeneratorBase implements IClass {
    * @protected
    * @memberof ParsedClass
    */
-  protected onAddImport = (typeOrModule: string, type?: string): string => {
+  protected onAddImport = (
+    typeOrModule: string,
+    context?: "static"
+  ): string => {
     if (!typeOrModule) {
       return;
     }
 
     if (typeOrModule === "this") {
-      return "this";
+      if (context === "static") {
+        return this.name;
+      } else {
+        return "this";
+      }
     }
+
     this.log("Adding import '" + typeOrModule + "'");
 
     if (typeOrModule === "I" + this.name + "Settings") {
@@ -206,14 +214,19 @@ export class ParsedClass extends GeneratorBase implements IClass {
     }
 
     const modulename = typeOrModule.split(this.typeSeparators);
+    const fullModuleName = modulename.join("/");
+
+    if(this.fullName === fullModuleName) {
+      return context === "static" ? this.name : "this";
+    }
+
     const typename = modulename.pop();
 
     const foundType = this.imports[typename];
     // Check if type with same name is already in list
     if (foundType) {
-      const mod = modulename.join("/") + "/" + typename;
       // Do nothing else if module is already imported
-      if (foundType.module === mod) {
+      if (foundType.module === fullModuleName) {
         return foundType.name;
       }
       // Otherwise add the type with the same name + alias property
@@ -222,7 +235,7 @@ export class ParsedClass extends GeneratorBase implements IClass {
       if (!this.imports[alias]) {
         this.imports[alias] = {
           name: typename,
-          module: mod,
+          module: fullModuleName,
           alias
         };
       }
@@ -230,7 +243,7 @@ export class ParsedClass extends GeneratorBase implements IClass {
     } else {
       this.imports[typename] = {
         name: typename,
-        module: modulename.join("/") + "/" + typename
+        module: fullModuleName
       };
       return typename;
     }

@@ -33,7 +33,7 @@ export abstract class GeneratorBase implements ILogDecorator {
     return styleJsDoc(text);
   }
 
-  protected getType(originType: string): string {
+  protected getType(originType: string, context?: "static"): string {
     if (!originType) {
       return "any";
     }
@@ -78,7 +78,7 @@ export abstract class GeneratorBase implements ILogDecorator {
       if (this.config.ambientTypes[type]) {
         ret.push(isArray ? type + "[]" : type);
       } else {
-        let alias = this.addImport(type);
+        let alias = this.addImport(type, context);
         if (alias)
           ret.push(isArray ? (alias + "[]") : alias);
       }
@@ -95,13 +95,13 @@ export abstract class GeneratorBase implements ILogDecorator {
    *
    * @memberof GeneratorBase
    */
-  protected addImport(module: string, type?: string): string {
+  protected addImport(module: string, context?: "static"): string {
     if (this.onAddImport) {
-      return this.onAddImport(module, type);
+      return this.onAddImport(module, context);
     }
   }
 
-  protected onAddImport: (module: string, type?: string) => string;
+  protected onAddImport: (module: string, context?: "static") => string;
 
   protected makeComment(description: string): string {
     return makeComment(description);
