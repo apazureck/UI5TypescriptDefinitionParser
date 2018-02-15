@@ -14,7 +14,7 @@ export class ParsedEvent extends GeneratorBase {
     private wrappedEvent: IEvent,
     private ownerClass: ParsedClass,
     config: IConfig,
-    addImport: (type: string) => void,
+    addImport: (type: string) => string,
     private decorated: ILogDecorator
   ) {
     super(config);

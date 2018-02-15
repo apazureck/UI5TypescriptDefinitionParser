@@ -3,8 +3,9 @@ import { IProperty, Visibility } from '../../UI5DocumentationTypes';
 import { ParsedNamespace } from './ParsedNamespace';
 import { IConfig, ILogDecorator } from '../../types';
 export class ParsedField extends GeneratorBase {
-    constructor(private wrappedProperty: IProperty, private owner: ParsedNamespace, config: IConfig, private decorated: ILogDecorator) {
+    constructor(private wrappedProperty: IProperty, private owner: ParsedNamespace, config: IConfig, private decorated: ILogDecorator, addimport: (type: string) => string) {
         super(config);
+        this.onAddImport = addimport;
         this.createProperties(wrappedProperty, owner);
     }
 

@@ -21,7 +21,7 @@ export class ParsedNamespace extends GeneratorBase {
 
     private createFields(namespace: ISymbol): void {
         if(namespace.properties) {
-            const map = namespace.properties.map(prop => new ParsedField(prop as IProperty, this, this.config, this));
+            const map = namespace.properties.map(prop => new ParsedField(prop as IProperty, this, this.config, this, this.onAddImport.bind(this)));
             if(map && map.length > 0) {
                 this.fields = map;
             }
@@ -54,11 +54,12 @@ export class ParsedNamespace extends GeneratorBase {
         }
     }
 
-    onAddImport = (fullTypeName: string) => {
+    onAddImport = (fullTypeName: string): string => {
         const typename = fullTypeName.split(this.typeSeparators).pop();
         if (!this.imports[typename]) {
             this.imports[typename] = `import { ${typename} } from '${fullTypeName.replace(/\./g, "/")}'`;
         }
+        return fullTypeName;
     }
 
     private createDescription(description: string): string {

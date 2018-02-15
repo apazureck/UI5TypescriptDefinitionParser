@@ -3,9 +3,9 @@ import { styleJsDoc, makeComment } from "./generators/GeneratorBase";
 import { ParsedClass } from "./generators/entities/ParsedClass";
 export function registerHelpers(Handlebars: any) {
   Handlebars.registerHelper("ifCond", function(
-    v1,
+    v1: string,
     operator: string,
-    v2,
+    v2: string,
     options
   ) {
     switch (operator) {

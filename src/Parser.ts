@@ -2,7 +2,7 @@ import { IApi, ISymbol } from "./UI5DocumentationTypes";
 import { ParsedClass } from "./generators/entities/ParsedClass";
 import { ParsedNamespace } from "./generators/entities/ParsedNamespace";
 import { EnumGenerator } from "./generators/EnumGenerator";
-import { IConfig, ILogDecorator } from "./types";
+import { IConfig, ILogDecorator, IPostProcessor } from "./types";
 import * as fs from "fs";
 import * as ncp from "ncp";
 import * as path from "path";
@@ -16,6 +16,7 @@ import * as gulptsf from "gulp-typescript-formatter";
 import * as ts from "typescript";
 import { Log, LogLevel } from "./log";
 import * as ProgressBar from "progress";
+import * as glob from "glob-all";
 
 const startTime = Date.now();
 Log.activate((message, level) => {
@@ -273,7 +274,7 @@ export class Parser implements ILogDecorator {
     await this.formatAllFiles();
 
     this.logger.Info("Replacing Post Processing directives");
-    await this.doFilePostProcessingReplacements(this.config);
+    this.doFilePostProcessingReplacements(this.config);
 
     // FOrmat all files again, as the user will replace the formatted strings.
     this.logger.Info("*** Formatting output files");
@@ -339,32 +340,41 @@ export class Parser implements ILogDecorator {
     return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
   }
 
-  private async doFilePostProcessingReplacements(
-    config: IConfig
-  ): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      for (const moduleName in config.postProcessing) {
+  private doFilePostProcessingReplacements(config: IConfig): void {
+    for (const moduleName in config.postProcessing) {
+      const files = glob.sync(
+        path.join(this.outfolder, moduleName + ".d.ts")
+      ) as string[];
+      const postProcessor = config.postProcessing[moduleName];
+      for (const file of files) {
         try {
-          const fullFilePath = path.join(this.outfolder, moduleName + ".d.ts");
-          let content = fs.readFileSync(fullFilePath, "utf-8");
-          for (const replacer of config.postProcessing[moduleName]) {
-            const replaceregex = replacer.isRegex
-              ? new RegExp(replacer.searchString, replacer.regexFlags)
-              : new RegExp(this.escapeRegExp(replacer.searchString), "g");
-            content = content.replace(replaceregex, replacer.replacement);
-          }
-          fs.writeFileSync(fullFilePath, content);
+          this.postProcessFile(file, postProcessor);
         } catch (error) {
           this.logger.Error(
             "Error occurred during postprocessing " +
+              file +
+              " with post processor " +
               moduleName +
               ": " +
               JSON.stringify(error)
           );
         }
       }
-      resolve();
-    });
+    }
+  }
+
+  private postProcessFile(
+    fullFilePath: string,
+    postProcessor: IPostProcessor[]
+  ): void {
+    let content = fs.readFileSync(fullFilePath, "utf-8");
+    for (const replacer of postProcessor) {
+      const replaceregex = replacer.isRegex
+        ? new RegExp(replacer.searchString, replacer.regexFlags)
+        : new RegExp(this.escapeRegExp(replacer.searchString), "g");
+      content = content.replace(replaceregex, replacer.replacement);
+    }
+    fs.writeFileSync(fullFilePath, content);
   }
 
   private async getClassesFromApiJsons(): Promise<void> {
@@ -382,7 +392,18 @@ export class Parser implements ILogDecorator {
       }
     };
     return new Promise<void>((resolve, reject) => {
+      console.log();
+      var bar = new ProgressBar("Scanning APIs [:bar] :percent :etas", {
+        complete: "=",
+        incomplete: ".",
+        width: 50,
+        total: apicount
+      });
       for (const endpoint in this.observedAPIs) {
+        bar.tick();
+        if(bar.complete) {
+          console.log("done");
+        }
         if (endpoint) {
           this.getClasses(this.observedAPIs[endpoint].api).then(() =>
             apifinished(resolve)
@@ -393,17 +414,22 @@ export class Parser implements ILogDecorator {
   }
 
   private async ParseAllClasses(allClasses: ParsedClass[]): Promise<void> {
-    // var bar = new ProgressBar("  Pushing Overloads [:bar] :percent :etas", {
-    //   complete: "=",
-    //   incomplete: ".",
-    //   width: 20,
-    //   total: this.allClasses.length
-    // });
+    console.log();
+    var bar = new ProgressBar("Creating class files [:bar] :percent :etas", {
+      complete: "=",
+      incomplete: ".",
+      width: 50,
+      total: allClasses.length
+    });
     return new Promise<void>(async (resolve, reject) => {
       const classcount = allClasses.length;
       let generatedclasses = 0;
       for (const c of allClasses) {
         try {
+          bar.tick();
+          if (bar.complete) {
+            console.log("done");
+          }
           await this.ParseClass(c);
           generatedclasses++;
           if (!(generatedclasses < classcount)) {
@@ -419,12 +445,6 @@ export class Parser implements ILogDecorator {
   private async ParseAllInterfaces(
     allInterfaces: ParsedClass[]
   ): Promise<void> {
-    // var bar = new ProgressBar("  Pushing Overloads [:bar] :percent :etas", {
-    //   complete: "=",
-    //   incomplete: ".",
-    //   width: 20,
-    //   total: this.allClasses.length
-    // });
     return new Promise<void>(async (resolve, reject) => {
       const classcount = allInterfaces.length;
       let generatedclasses = 0;
@@ -466,7 +486,7 @@ export class Parser implements ILogDecorator {
     const filepath = path.join(
       this.outfolder,
       "interfaces",
-      c.fullName + ".d.ts"
+      c.fullName + "." + c.name + ".d.ts"
     );
     this.log("Creating class " + filepath);
     try {
@@ -501,8 +521,16 @@ export class Parser implements ILogDecorator {
       (value, index, array) => !value.baseclass
     );
     this.logger.Info("Pushing overloads for classes.");
-    console.log();
+    var bar = new ProgressBar("  Pushing Overloads [:bar] :percent :etas", {
+      complete: "=",
+      incomplete: ".",
+      width: 50,
+      total: baseclasses.length
+    });
     for (const bc of baseclasses) {
+      bar.tick();
+      if(bar.complete)
+        console.log("done");
       bc.pushOverloads();
     }
     console.log("\n");
@@ -510,11 +538,12 @@ export class Parser implements ILogDecorator {
   }
 
   private replaceFiles(sourcePath: string, outPath: string) {
-    ncp.ncp(sourcePath, outPath, error => {
-      if (error) {
-        console.error("Could not copy: " + error.toString());
-      }
-    });
+    if (fs.existsSync(sourcePath))
+      ncp.ncp(sourcePath, outPath, error => {
+        if (error) {
+          console.error("Could not copy: " + error.toString());
+        }
+      });
   }
 
   private generateSubbedTypeFile(filename: string): void {
@@ -558,7 +587,11 @@ export class Parser implements ILogDecorator {
 
     // Get all enums for parsing
     if (api.symbols && api.symbols.length > 0) {
-      const enums = api.symbols.filter(x => x.kind === "enum");
+      const enums = api.symbols.filter(
+        x =>
+          x.kind === "enum" ||
+          (x.kind === "namespace" && this.config.enums[x.name] !== undefined)
+      );
       for (const e of enums) {
         this.config.ambientTypes[e.name] = e;
       }
@@ -692,10 +725,6 @@ export class Parser implements ILogDecorator {
         "Library '" + this.currentApi.library + "': " + message
       );
     }
-  }
-
-  doPostProductionReplacements(config: IConfig) {
-    this.outfolder;
   }
 }
 

@@ -1,7 +1,8 @@
 declare module '{{fullName}}' {
-{{#each imports}}{{#unlessCond ../name '==' this.name}} import {{this.name}} from '{{this.module}}/{{this.name}}';{{/unlessCond}}
-{{/each}}
-{{~#if baseclass}}import { I{{baseclass.name}}Settings } from '{{baseclass.moduleName}}/{{baseclass.name}}';{{/if}}
+{{#each imports~}}{{#ifCond ../baseclass.fullName '!=' this.module}}{{#ifCond ../fullName '!=' this.module}} import { {{this.name}}{{#if this.alias}} as {{this.alias}}{{/if}} } from '{{this.module}}';
+{{/ifCond}}{{/ifCond}}
+{{~/each}}
+{{~#if baseclass}}import { {{baseclass.name}}{{#ifCond baseclass.name '==' name}} as {{baseclass.name}}Base{{/ifCond}}, I{{baseclass.name}}Settings } from '{{baseclass.moduleName}}/{{baseclass.name}}';{{/if}}
 
 export interface I{{name}}Settings
 {{~#if baseclass}} extends I{{baseclass.name}}Settings {{/if}}{
@@ -14,7 +15,7 @@ export interface I{{name}}Settings
 {{parsedDescription}}
 */
 {{/if}}
-export default class {{name}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}{
+export class {{name}} {{#if baseclass}}extends {{baseclass.name}}{{#ifCond baseclass.name '==' name}}Base{{/ifCond}}{{/if}}{
 
 {{#if constructors.length~}}
 {{#each constructors}}

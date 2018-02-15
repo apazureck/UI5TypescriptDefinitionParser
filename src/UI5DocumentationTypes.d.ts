@@ -75,6 +75,8 @@ export interface IMethod {
 export interface IReturnValue {
     type: string;
     description?: string;
+    unknown?: boolean;
+    rawTypes: { [key: string]: string }
 }
 
 export interface IEvent {

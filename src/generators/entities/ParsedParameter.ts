@@ -5,10 +5,14 @@ import { GeneratorBase } from "../GeneratorBase";
 export class ParsedParameter extends GeneratorBase {
   private customType = false;
   private hasCustomEventHandler = false;
+
+  public get raw(): IParameter {
+    return this.param;
+  }
   constructor(
     private param: IParameter,
     className: string,
-    addImport: (type: string) => void,
+    addImport: (type: string) => string,
     config: IConfig,
     private decorated: ILogDecorator
   ) {
@@ -39,7 +43,7 @@ export class ParsedParameter extends GeneratorBase {
     createDescription: boolean
   ): string {
     let eventtype = this.getType(param.type);
-    eventtype += "<" + className + ", ";
+    eventtype += "<" + "this" + ", ";
     if (
       param.parameterProperties &&
       param.parameterProperties["getParameters"]
@@ -60,6 +64,7 @@ export class ParsedParameter extends GeneratorBase {
   }
 
   private cleanName(name: string, config: IConfig): string {
+    if (name === "constructor") return name;
     return config.cleanParamNames[name] || name;
   }
 

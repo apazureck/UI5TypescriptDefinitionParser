@@ -4,11 +4,11 @@ import * as htmltomd from "html-to-markdown";
 import * as jsdoc2md from "jsdoc-to-markdown";
 
 htmltomd.use((html: string) => {
-  return html.replace(/(<code>|<\/code>)/g, "`")
+  return html.replace(/(<code>|<\/code>)/g, "`");
 });
 htmltomd.use((html: string) => {
   return html.replace(/(<\/br>|<br\/>)/g, "\n");
-})
+});
 
 export abstract class GeneratorBase implements ILogDecorator {
   protected readonly typeSeparators = /[\.\/]/g;
@@ -18,7 +18,9 @@ export abstract class GeneratorBase implements ILogDecorator {
     void: "void",
     string: "string",
     boolean: "boolean",
-    RegExp: "RegExp"
+    RegExp: "RegExp",
+    "{}": "{}",
+    TcustomData: "TcustomData"
   };
 
   constructor(protected readonly config: IConfig) {}
@@ -74,16 +76,11 @@ export abstract class GeneratorBase implements ILogDecorator {
       }
 
       if (this.config.ambientTypes[type]) {
-        ret.push(
-          isArray ? type + "[]" : type
-        );
+        ret.push(isArray ? type + "[]" : type);
       } else {
-        this.addImport(type);
-        ret.push(
-          isArray
-            ? type.split(this.typeSeparators).pop() + "[]"
-            : type.split(this.typeSeparators).pop()
-        );
+        let alias = this.addImport(type);
+        if (alias)
+          ret.push(isArray ? (alias + "[]") : alias);
       }
     }
     return ret.join("|");
@@ -98,13 +95,13 @@ export abstract class GeneratorBase implements ILogDecorator {
    *
    * @memberof GeneratorBase
    */
-  protected addImport(module: string, type?: string) {
+  protected addImport(module: string, type?: string): string {
     if (this.onAddImport) {
-      this.onAddImport(module, type);
+      return this.onAddImport(module, type);
     }
   }
 
-  protected onAddImport: (module: string, type?: string) => void;
+  protected onAddImport: (module: string, type?: string) => string;
 
   protected makeComment(description: string): string {
     return makeComment(description);
@@ -122,6 +119,8 @@ export function makeComment(description: string): string {
   if (!description) {
     return "";
   }
+  // Replace any closing comment */
+  description = description.replace(/\*\//g, "* /");
   return (
     "* " +
     description

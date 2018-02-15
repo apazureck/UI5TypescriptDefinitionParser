@@ -3,7 +3,7 @@ import { IConfig, ILogDecorator } from '../types';
 import { IEvent, IParameter, IParameterProperty } from '../UI5DocumentationTypes';
 export class EventGenerator extends GeneratorBase {
     currentEvent: IEvent;
-    constructor(config: IConfig, addImport: (type: string) => void, private decorated: ILogDecorator) {
+    constructor(config: IConfig, addImport: (type: string) => string, private decorated: ILogDecorator) {
         super(config);
         this.onAddImport = addImport;
     }

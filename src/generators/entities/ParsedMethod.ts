@@ -9,19 +9,12 @@ import { GeneratorBase } from "../GeneratorBase";
 import { ParsedClass } from "./ParsedClass";
 import { ParsedNamespace } from "./ParsedNamespace";
 import { ParsedParameter } from "./ParsedParameter";
+import * as _ from "lodash";
 
 export class ParsedMethod extends GeneratorBase {
   overloadedMethod: ParsedMethod;
   parameters: ParsedParameter[] = [];
   stubs: string[];
-
-  overloads(basemethod: ParsedMethod): ParsedMethod {
-    this.overloadedMethod = basemethod;
-    if(basemethod.returntype.type.indexOf(this.returntype.type) < 0) {
-      this.returntype.type = this.returntype.type + " | " + basemethod.returntype.type;
-    }
-    return basemethod;
-  }
 
   get name(): string {
     return this.wrappedMethod.name;
@@ -41,7 +34,7 @@ export class ParsedMethod extends GeneratorBase {
 
   constructor(
     private wrappedMethod: IMethod,
-    onAddImport: (type: string) => void,
+    onAddImport: (type: string) => string,
     private decorated: ILogDecorator,
     config: IConfig,
     private owner: ParsedClass | ParsedNamespace,
@@ -88,7 +81,7 @@ export class ParsedMethod extends GeneratorBase {
 
   public static overloadLeadingOptionalParameters(
     method: IMethod,
-    onAddImport: (type: string) => void,
+    onAddImport: (type: string) => string,
     decorated: ILogDecorator,
     config: IConfig,
     owner: ParsedClass | ParsedNamespace,
@@ -168,47 +161,60 @@ export class ParsedMethod extends GeneratorBase {
       if (this.owner instanceof ParsedClass && this.name.startsWith("attach")) {
         this.makeAttachEventParameters();
       } else {
-          this.makeStandardMethodParameters(suppressReturnValue);
+        this.makeStandardMethodParameters(suppressReturnValue);
       }
     } catch (error) {
       throw error;
     }
   }
 
-    private makeStandardMethodParameters(suppressReturnValue?: boolean): void {
-        suppressReturnValue = suppressReturnValue || false;
-        if ((this.wrappedMethod.visibility as any) === "restricted") {
-            this.visibility = "private";
-        }
-        else {
-            this.visibility = this.wrappedMethod.visibility;
-        }
-        if (this.wrappedMethod.parameters) {
-            this.parameters = this.wrappedMethod.parameters.map<ParsedParameter>((value, index, array) => new ParsedParameter(value, (this.owner as ParsedClass).name, this.onAddImport, this.config, this));
-        }
-        if (suppressReturnValue) {
-        }
-        else if (this.wrappedMethod.returnValue) {
-            this.returntype = {
-                type: this.getType(this.wrappedMethod.returnValue.type),
-                description: this.wrappedMethod.returnValue.description
-            };
-        }
-        else {
-            this.returntype = { type: "void", description: "" };
-        }
+  private makeStandardMethodParameters(suppressReturnValue?: boolean): void {
+    suppressReturnValue = suppressReturnValue || false;
+    if ((this.wrappedMethod.visibility as any) === "restricted") {
+      this.visibility = "private";
+    } else {
+      this.visibility = this.wrappedMethod.visibility;
     }
+    if (this.wrappedMethod.parameters) {
+      this.parameters = this.wrappedMethod.parameters.map<ParsedParameter>(
+        (value, index, array) =>
+          new ParsedParameter(
+            value,
+            (this.owner as ParsedClass).name,
+            this.onAddImport,
+            this.config,
+            this
+          )
+      );
+    }
+    if (suppressReturnValue) {
+    } else if (this.wrappedMethod.returnValue) {
+      let rtype = this.getType(this.wrappedMethod.returnValue.type);
+      this.returntype = {
+        type: rtype,
+        rawTypes: {},
+        description: this.wrappedMethod.returnValue.description,
+        unknown: false
+      };
+      this.returntype.rawTypes[
+        this.returntype.type
+      ] = this.wrappedMethod.returnValue.type;
+    } else {
+      this.returntype = {
+        type: "any",
+        description: "",
+        unknown: true,
+        rawTypes: {}
+      };
+    }
+  }
 
   private makeAttachEventParameters(): void {
     const eventname = /attach(.*)/.exec(this.name)[1].toLocaleLowerCase();
 
     // Check which parameters got used
-    let objParam = this.wrappedMethod.parameters.find(
-      x => x.name === "oData"
-    );
-    let func = this.wrappedMethod.parameters.find(
-      x => x.name === "fnFunction"
-    );
+    let objParam = this.wrappedMethod.parameters.find(x => x.name === "oData");
+    let func = this.wrappedMethod.parameters.find(x => x.name === "fnFunction");
     let context = this.wrappedMethod.parameters.find(
       x => x.name === "oListener"
     );
@@ -216,13 +222,13 @@ export class ParsedMethod extends GeneratorBase {
     //add custom event payload parameter
     if (objParam) {
       const coparam = new ParsedParameter(
-          objParam,
-          this.owner.name,
-          undefined,
-          this.config,
-          this
-        )
-        this.parameters.push(coparam);
+        objParam,
+        this.owner.name,
+        undefined,
+        this.config,
+        this
+      );
+      this.parameters.push(coparam);
 
       this.IsGeneric = true;
       objParam.type = "TcustomData";
@@ -234,11 +240,18 @@ export class ParsedMethod extends GeneratorBase {
       const event = (this.owner as ParsedClass).events.find(
         x => x.name.toLowerCase() === eventname
       );
-      const cfunc = new ParsedParameter(func, this.owner.name, undefined, this.config, this);
+      const cfunc = new ParsedParameter(
+        func,
+        this.owner.name,
+        undefined,
+        this.config,
+        this
+      );
       this.parameters.push(cfunc);
       this.returntype = {
         type: "this",
-        description: ""
+        description: "",
+        rawTypes: {}
       };
 
       if (event) {
@@ -247,9 +260,11 @@ export class ParsedMethod extends GeneratorBase {
             "(" +
             (context ? "this: Tcontext, " : "this: this") +
             "oEvent: " +
-            event.parameters[0].type  +
-            (objParam !== undefined ? (", oCustomData?: TcustomData) => void") : ") => void");
-            func.typeAlreadyProcessed = true;
+            event.parameters[0].type +
+            (objParam !== undefined
+              ? ", oCustomData?: TcustomData) => void"
+              : ") => void");
+          func.typeAlreadyProcessed = true;
         } catch (error) {
           let i = 0;
         }
@@ -267,7 +282,7 @@ export class ParsedMethod extends GeneratorBase {
       );
 
       this.parameters.push(cparam);
-      
+
       if (func) {
         cparam.type = "Tcontext";
         this.IsGeneric = true;
@@ -333,9 +348,54 @@ export class ParsedMethod extends GeneratorBase {
 
   public IsOverload(method: ParsedMethod) {
     if (this.name !== method.name) return false;
-
-    if (this.parameters.length === method.parameters.length) return false;
+    if (this.parameters.length === method.parameters.length) {
+      for (let i = 0; i < this.parameters.length; i++) {
+        const thisParam = this.parameters[i];
+        if (thisParam.type !== method.parameters[i].type) return true;
+      }
+      return false;
+    }
 
     return true;
+  }
+
+  /**
+   * This method overloads the current method (this) with the base method. Check if the methods are overloads with IsOverload first.
+   *
+   * @param {ParsedMethod} basemethod The base method to overload
+   * @returns {ParsedMethod} The (modified?) base method
+   * @memberof ParsedMethod
+   */
+  overloads(basemethod: ParsedMethod): ParsedMethod {
+    this.importBaseMethodParameters(basemethod.parameters);
+    this.wrappedMethod.description +=
+      "\n\n_Overloads " +
+      basemethod.name +
+      " of class " +
+      basemethod.owner.name +
+      "_";
+    return this.mergeBaseType(basemethod);
+  }
+
+  private importBaseMethodParameters(parameters: ParsedParameter[]) {
+    for (const param of parameters) {
+      this.getType(param.raw.type);
+    }
+  }
+  private mergeBaseType(basemethod: ParsedMethod) {
+    this.overloadedMethod = basemethod;
+    // merge basetypes
+    let basetypes = basemethod.returntype.type.split("|").map(x => x.trim());
+    let thistypes = basemethod.returntype.type.split("|").map(x => x.trim());
+    thistypes = _.uniq(thistypes.concat(basetypes));
+    this.returntype.type = thistypes
+      .map(x => {
+        const tshort = this.getType(basemethod.returntype.rawTypes[x] || x);
+        if (basemethod.returntype.rawTypes[x])
+          this.returntype.rawTypes[x] = basemethod.returntype.rawTypes[x];
+        return x;
+      })
+      .join(" | ");
+    return basemethod;
   }
 }
