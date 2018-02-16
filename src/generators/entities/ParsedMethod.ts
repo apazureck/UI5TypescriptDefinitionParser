@@ -71,12 +71,9 @@ export class ParsedMethod extends GeneratorBase {
 
     if (parameters) {
       for (const param of parameters) {
-        ret += `@param {${this.getType(
-          param.type,
-          "static"
-        )}} ${param.optional ? "[" : ""}${param.name}${
-          param.optional ? "]" : ""
-          } ${param.description}\n`;
+        ret += `@param {${this.getType(param.type, "static")}} ${
+          param.optional ? "[" : ""
+        }${param.name}${param.optional ? "]" : ""} ${param.description}\n`;
       }
     }
 
@@ -194,9 +191,15 @@ export class ParsedMethod extends GeneratorBase {
     }
     if (suppressReturnValue) {
     } else if (this.wrappedMethod.returnValue) {
+      let restypes: {
+        restype: string;
+        origintype: string;
+      }[] = [];
+
       let rtype = this.getType(
         this.wrappedMethod.returnValue.type,
-        this.isStatic ? "static" : undefined
+        this.isStatic ? "static" : undefined,
+        restypes
       );
       this.returntype = {
         type: rtype,
@@ -204,9 +207,10 @@ export class ParsedMethod extends GeneratorBase {
         description: this.wrappedMethod.returnValue.description,
         unknown: false
       };
-      this.returntype.rawTypes[
-        this.returntype.type
-      ] = this.wrappedMethod.returnValue.type;
+
+      for (const t of restypes) {
+        this.returntype.rawTypes[t.restype] = t.origintype;
+      }
     } else {
       this.returntype = {
         type: "any",
@@ -363,17 +367,33 @@ export class ParsedMethod extends GeneratorBase {
   }
 
   public IsOverload(method: ParsedMethod) {
-    if (this.name !== method.name)
-      return false;
+    if (this.name !== method.name) return false;
+
     if (this.parameters.length === method.parameters.length) {
       for (let i = 0; i < this.parameters.length; i++) {
         const thisParam = this.parameters[i];
-        if (thisParam.type !== method.parameters[i].type)
+        if (thisParam.type !== method.parameters[i].type) {
           return true;
+        }
       }
     }
 
-    if (this.returntype.type !== method.returntype.type)
+    if (method.returntype.type === "this") {
+      this.returntype.type = "this";
+      return false;
+    }
+
+    // Check if this method contains all types of basetype.
+    const thisret = this.returntype.type.split("|");
+    const baseret = this.returntype.type.split("|");
+
+    for(const type of thisret) {
+      const found = baseret.indexOf(type);
+      if(found > -1) {
+        baseret.splice(found);
+      }
+    }
+    if(baseret.length > 0)
       return true;
 
     return false;
@@ -407,19 +427,23 @@ export class ParsedMethod extends GeneratorBase {
     this.overloadedMethod = basemethod;
     // merge basetypes
     let basetypes = basemethod.returntype.type.split("|").map(x => x.trim());
-    let thistypes = basemethod.returntype.type.split("|").map(x => x.trim());
+    let thistypes = this.returntype.type.split("|").map(x => x.trim());
     thistypes = _.uniq(thistypes.concat(basetypes));
-    this.returntype.type = thistypes
-      .map(x => {
-        const tshort = this.getType(
-          basemethod.returntype.rawTypes[x] || x,
-          this.isStatic ? "static" : undefined
-        );
-        if (basemethod.returntype.rawTypes[x])
-          this.returntype.rawTypes[x] = basemethod.returntype.rawTypes[x];
-        return x;
-      })
-      .join(" | ");
+    if (thistypes.indexOf("this") > -1) {
+      this.returntype.type = "this";
+    } else {
+      this.returntype.type = thistypes
+        .map(x => {
+          const tshort = this.getType(
+            basemethod.returntype.rawTypes[x] || x,
+            this.isStatic ? "static" : undefined
+          );
+          if (basemethod.returntype.rawTypes[x])
+            this.returntype.rawTypes[x] = basemethod.returntype.rawTypes[x];
+          return x;
+        })
+        .join(" | ");
+    }
     return basemethod;
   }
 }

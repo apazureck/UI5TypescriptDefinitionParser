@@ -33,7 +33,7 @@ export abstract class GeneratorBase implements ILogDecorator {
     return styleJsDoc(text);
   }
 
-  protected getType(originType: string, context?: "static"): string {
+  protected getType(originType: string, context?: "static", complexOut?: { restype: string, origintype: string}[]): string {
     if (!originType) {
       return "any";
     }
@@ -46,6 +46,12 @@ export abstract class GeneratorBase implements ILogDecorator {
         type = type.replace(/\[\]$/, "");
       }
 
+      const curtype: { restype?: string, origintype?: string } = {};
+
+      if(complexOut) {
+        curtype.origintype = type;
+      }
+
       if (this.config.typeMap.hasOwnProperty(type)) {
         const oldtype = type;
 
@@ -54,6 +60,10 @@ export abstract class GeneratorBase implements ILogDecorator {
         type = this.config.typeMap[type];
         ret.push(type);
         this.log("Replaced: Type '" + oldtype + "' => Type '" + type + "'");
+        if(complexOut) {
+          curtype.restype = type;
+          complexOut.push(curtype as any);
+        }
         continue;
         // }
       }
@@ -62,25 +72,45 @@ export abstract class GeneratorBase implements ILogDecorator {
         ret.push(
           isArray ? this.tsBaseTypes[type] + "[]" : this.tsBaseTypes[type]
         );
+        if(complexOut) {
+          curtype.restype = this.tsBaseTypes[type];
+          complexOut.push(curtype as any);
+        }
         continue;
       }
 
       if (this.config.enums.hasOwnProperty(type)) {
         ret.push(isArray ? type + "[]" : type);
+        if(complexOut) {
+          curtype.restype = type;
+          complexOut.push(curtype as any);
+        }
         continue;
       }
 
       if (this.config.substitutedTypes.hasOwnProperty(type)) {
         ret.push(isArray ? type + "[]" : type);
+        if(complexOut) {
+          curtype.restype = type;
+          complexOut.push(curtype as any);
+        }
         continue;
       }
 
       if (this.config.ambientTypes[type]) {
         ret.push(isArray ? type + "[]" : type);
+        if(complexOut) {
+          curtype.restype = type;
+          complexOut.push(curtype as any);
+        }
       } else {
         let alias = this.addImport(type, context);
         if (alias)
           ret.push(isArray ? (alias + "[]") : alias);
+          if(complexOut) {
+            curtype.restype = alias;
+            complexOut.push(curtype as any);
+          }
       }
     }
     return ret.join("|");

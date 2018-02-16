@@ -17,7 +17,7 @@ import * as ts from "typescript";
 import { Log, LogLevel } from "./log";
 import * as ProgressBar from "progress";
 import * as glob from "glob-all";
-import * as jpath from "jsonpath"
+import * as jpath from "jsonpath";
 
 const startTime = Date.now();
 Log.activate((message, level) => {
@@ -48,19 +48,19 @@ export class Parser implements ILogDecorator {
       if (ppitem.comment) {
         this.logger.Info(ppitem.comment);
       }
-      let bar = createNewProgressBar("Processing", apicount, ["api: :api"])
+      let bar = createNewProgressBar("Processing", apicount, ["api: :api"]);
       const func = new Function("val", `${ppitem.script}\nreturn val;`);
-      let debugwrapper = (val):void => {
+      let debugwrapper = (val): void => {
         return func(val);
       };
       for (const endpointname in apis) {
         try {
           const api = apis[endpointname];
-          const paths = jpath.paths(api.api, ppitem.jsonpath)
+          const paths = jpath.paths(api.api, ppitem.jsonpath);
           for (const path of paths) {
             jpath.apply(api.api, jpath.stringify(path), debugwrapper);
           }
-          bar.tick({ "api": endpointname });
+          bar.tick({ api: endpointname });
         } catch (error) {
           this.logger.Error("Error preprocessing");
           this.logger.Error(JSON.stringify(error));
@@ -107,7 +107,7 @@ export class Parser implements ILogDecorator {
           } else {
             this.logger.Info(
               "No cached file found, requesting from " +
-              this.config.connection.root
+                this.config.connection.root
             );
             this.observedAPIs[endpoint] = {
               loaded: false
@@ -215,7 +215,6 @@ export class Parser implements ILogDecorator {
   }
 
   private async generate() {
-
     this.preprocessApis(this.observedAPIs);
 
     this.logger.Info("Creating ambient type map");
@@ -263,7 +262,7 @@ export class Parser implements ILogDecorator {
 
     this.CreateClassOverloads();
 
-    this.generateSubbedTypeFile("substituted.d.ts");
+     this.generateSubbedTypeFile("substituted.d.ts");
 
     this.logger.Info("Creating class files");
     console.log();
@@ -364,9 +363,9 @@ export class Parser implements ILogDecorator {
 
     this.log(
       "Created " +
-      info.generatedClassCount +
-      " interfaces of Library " +
-      api.library
+        info.generatedClassCount +
+        " interfaces of Library " +
+        api.library
     );
     return info;
   }
@@ -387,11 +386,11 @@ export class Parser implements ILogDecorator {
         } catch (error) {
           this.logger.Error(
             "Error occurred during postprocessing " +
-            file +
-            " with post processor " +
-            moduleName +
-            ": " +
-            JSON.stringify(error)
+              file +
+              " with post processor " +
+              moduleName +
+              ": " +
+              JSON.stringify(error)
           );
         }
       }
@@ -656,9 +655,9 @@ export class Parser implements ILogDecorator {
 
     this.log(
       "Created " +
-      info.generatedClassCount +
-      " classes of Library " +
-      api.library
+        info.generatedClassCount +
+        " classes of Library " +
+        api.library
     );
     return info;
   }
@@ -717,11 +716,11 @@ export class Parser implements ILogDecorator {
     if (sourceStack) {
       this.logger.Debug(
         "Library '" +
-        this.currentApi.library +
-        "' -> " +
-        sourceStack +
-        ": " +
-        message
+          this.currentApi.library +
+          "' -> " +
+          sourceStack +
+          ": " +
+          message
       );
     } else {
       this.logger.Debug(
@@ -743,11 +742,20 @@ function MakeDirRecursiveSync(dirpath): Promise<void> {
   });
 }
 
-function createNewProgressBar(title: string, endcount: number, tokens?: string[]): ProgressBar {
-  return new ProgressBar(title + (tokens ? (": " + tokens.join(" ")) : " ") + "[:bar] :percent :etas", {
-    complete: "=",
-    incomplete: ".",
-    width: 50,
-    total: endcount
-  });
+function createNewProgressBar(
+  title: string,
+  endcount: number,
+  tokens?: string[]
+): ProgressBar {
+  return new ProgressBar(
+    title +
+      (tokens ? ": " + tokens.join(" ") : " ") +
+      "[:bar] :percent :etas | Ran :elapsed",
+    {
+      complete: "=",
+      incomplete: ".",
+      width: 50,
+      total: endcount
+    }
+  );
 }

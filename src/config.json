@@ -132,7 +132,9 @@
     "sap.ui.core.CSSColor": "declare namespace sap.ui.core {\nexport type CSSColor = string;\n}",
     "sap.ui.core.Dock": "declare namespace sap.ui.core {\nexport type Dock = 'begin top' | 'begin center' | 'begin bottom' | 'left top' | 'left center' | 'left bottom' | 'right top' | 'right center' | 'right bottom' | 'center top' | 'center center' | 'center bottom' | 'end top' | 'end center' | 'end bottom'\n}",
     "sap.ui.core.Percentage": "declare namespace sap.ui.core {\nexport type Percentage = string;\n}",
-    "sap.ui.commons.SplitterSize": "declare namespace sap.ui.commons {\nexport type SplitterSize = string;\n}"
+    "sap.ui.commons.SplitterSize": "declare namespace sap.ui.commons {\nexport type SplitterSize = string;\n}",
+    "sap.ui.layout.GridIndent": "declare namespace sap.ui.layout {\nexport type GridIndent = string;\n}",
+    "sap.ui.layout.GridSpan": "declare namespace sap.ui.layout {\nexport type GridSpan = string;\n}"
   },
   "cleanParamNames": {
     "<code>vData</code>": "vData",
