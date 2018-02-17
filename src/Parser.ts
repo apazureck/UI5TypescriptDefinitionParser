@@ -39,35 +39,6 @@ interface IObservedApis {
  * @class Parser
  */
 export class Parser implements ILogDecorator {
-  preprocessApis(apis: IObservedApis): void {
-    this.logger.Info("Running preprocessing");
-    const apicount = Object.keys(apis).length;
-    for (const entry in this.config.preProcessing) {
-      this.logger.Info("Running '" + entry + "'");
-      const ppitem = this.config.preProcessing[entry];
-      if (ppitem.comment) {
-        this.logger.Info(ppitem.comment);
-      }
-      let bar = createNewProgressBar("Processing", apicount, ["api: :api"]);
-      const func = new Function("val", `${ppitem.script}\nreturn val;`);
-      let debugwrapper = (val): void => {
-        return func(val);
-      };
-      for (const endpointname in apis) {
-        try {
-          const api = apis[endpointname];
-          const paths = jpath.paths(api.api, ppitem.jsonpath);
-          for (const path of paths) {
-            jpath.apply(api.api, jpath.stringify(path), debugwrapper);
-          }
-          bar.tick({ api: endpointname });
-        } catch (error) {
-          this.logger.Error("Error preprocessing");
-          this.logger.Error(JSON.stringify(error));
-        }
-      }
-    }
-  }
   allInterfaces: ParsedClass[] = [];
   private config: IConfig;
   private outfolder: string;
@@ -76,6 +47,23 @@ export class Parser implements ILogDecorator {
 
   private currentApi: IApi;
   private logger: Log;
+
+  private interfaceTemplate = fs.readFileSync(
+    "templates/interface.d.ts.hb",
+    "utf8"
+  );
+
+  enumTemplate: HandlebarsTemplateDelegate<any> = Handlebars.compile(
+    fs.readFileSync("templates/enums.d.ts.hb", "utf-8"),
+    {
+      noEscape: true
+    }
+  );
+
+  private allClasses: ParsedClass[] = [];
+  private allNamespaces: ParsedNamespace[] = [];
+
+  classTemplate = fs.readFileSync("templates/classModule.d.ts.hb", "utf8");
 
   constructor(private configPath: string) {
     this.config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
@@ -187,52 +175,16 @@ export class Parser implements ILogDecorator {
     }
   }
 
-  createAmbientDictionary(allApis: {
-    [endpoint: string]: {
-      loaded: boolean;
-      api?: IApi;
-    };
-  }): void {
-    for (const endpoint in allApis) {
-      if (allApis[endpoint]) {
-        this.createAmbientDictionaryFromApi(allApis[endpoint].api);
-      }
-    }
-  }
-
-  createAmbientDictionaryFromApi(api: IApi) {
-    for (const symbol of api.symbols) {
-      switch (symbol.kind) {
-        case "enum":
-        case "namespace":
-        case "interface":
-          this.config.ambientTypes[symbol.name] = symbol;
-          break;
-        default:
-          break;
-      }
-    }
-  }
-
   private async generate() {
     this.preprocessApis(this.observedAPIs);
 
     this.logger.Info("Creating ambient type map");
-    this.createAmbientDictionary(this.observedAPIs);
+    this.createAmbientAndModularDictionary(this.observedAPIs);
 
-    this.logger.Info("Scanning apis for enums");
-    for (const endpoint in this.observedAPIs) {
-      if (endpoint) {
-        await this.getEnums(this.observedAPIs[endpoint].api);
-      }
-    }
+    await this.parseEnums(this.config);
 
-    this.logger.Info("Scanning apis for namespaces");
-    for (const endpoint in this.observedAPIs) {
-      if (endpoint) {
-        await this.getNamespaces(this.observedAPIs[endpoint].api);
-      }
-    }
+    await this.getNamespaces(this.config);
+    await this.createNamespaceFiles();
 
     this.logger.Info("Scanning for interfaces");
     for (const endpoint in this.observedAPIs) {
@@ -262,12 +214,32 @@ export class Parser implements ILogDecorator {
 
     this.CreateClassOverloads();
 
-     this.generateSubbedTypeFile("substituted.d.ts");
+    this.generateSubbedTypeFile("substituted.d.ts");
 
     this.logger.Info("Creating class files");
     console.log();
     await this.ParseAllClasses(this.allClasses);
 
+    this.logger.Info("Copying replacement files");
+    this.replaceFiles("replacements", this.outfolder);
+
+    // FOrmat all files
+    this.logger.Info("*** Formatting output files");
+    await this.formatAllFiles();
+
+    this.logger.Info("Replacing Post Processing directives");
+    this.doFilePostProcessingReplacements(this.config);
+
+    // FOrmat all files again, as the user will replace the formatted strings.
+    this.logger.Info("*** Formatting output files");
+    await this.formatAllFiles();
+
+    this.logger.Info(
+      "Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done"
+    );
+  }
+
+  private async createNamespaceFiles() {
     this.logger.Info("Creating Namespace files");
     // Make namespace files
     const nstemplate = Handlebars.compile(
@@ -299,30 +271,175 @@ export class Parser implements ILogDecorator {
         );
       }
     }
-
-    this.logger.Info("Copying replacement files");
-    this.replaceFiles("replacements", this.outfolder);
-
-    // FOrmat all files
-    this.logger.Info("*** Formatting output files");
-    await this.formatAllFiles();
-
-    this.logger.Info("Replacing Post Processing directives");
-    this.doFilePostProcessingReplacements(this.config);
-
-    // FOrmat all files again, as the user will replace the formatted strings.
-    this.logger.Info("*** Formatting output files");
-    await this.formatAllFiles();
-
-    this.logger.Info(
-      "Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done Done"
-    );
   }
 
-  private interfaceTemplate = fs.readFileSync(
-    "templates/interface.d.ts.hb",
-    "utf8"
-  );
+  // 1st step: Preprocess all apis
+
+  preprocessApis(apis: IObservedApis): void {
+    this.logger.Info("Running preprocessing");
+    const apicount = Object.keys(apis).length;
+    for (const entry in this.config.preProcessing) {
+      this.logger.Info("Running '" + entry + "'");
+      const ppitem = this.config.preProcessing[entry];
+      if (ppitem.comment) {
+        this.logger.Info(ppitem.comment);
+      }
+      let bar = createNewProgressBar("Processing", apicount, ["api: :api"]);
+      const func = new Function("val", `${ppitem.script}\nreturn val;`);
+      let debugwrapper = (val): void => {
+        return func(val);
+      };
+      for (const endpointname in apis) {
+        try {
+          const api = apis[endpointname];
+          const paths = jpath.paths(api.api, ppitem.jsonpath);
+          for (const path of paths) {
+            jpath.apply(api.api, jpath.stringify(path), debugwrapper);
+          }
+          bar.tick({ api: endpointname });
+        } catch (error) {
+          this.logger.Error("Error preprocessing");
+          this.logger.Error(JSON.stringify(error));
+        }
+      }
+    }
+  }
+
+  // 2nd step: devide all types in ambient and modular types
+
+  createAmbientAndModularDictionary(allApis: {
+    [endpoint: string]: {
+      loaded: boolean;
+      api?: IApi;
+    };
+  }): void {
+    this.config.modularTypes = {};
+    this.config.ambientTypes = {};
+    for (const endpoint in allApis) {
+      if (allApis[endpoint]) {
+        this.createAmbientDictionaryFromApi(allApis[endpoint].api);
+      }
+    }
+  }
+
+  createAmbientDictionaryFromApi(api: IApi) {
+    for (const symbol of api.symbols) {
+      if (symbol.module.match(/(\w+[\."])+/)) {
+        if (this.config.ambientTypes[symbol.name]) {
+          this.logger.Error(
+            "Ambient Symbol" + symbol.name + " is declared multiple times!"
+          );
+        } else {
+          this.config.ambientTypes[symbol.name] = symbol;
+        }
+      } else if (symbol.module.match(/^(\w+[\/"])+/)) {
+        if (this.config.modularTypes[symbol.name]) {
+          this.logger.Error(
+            "Modular Symbol" + symbol.name + " is declared multiple times!"
+          );
+        } else {
+          this.config.modularTypes[symbol.name] = symbol;
+        }
+      } else {
+        this.logger.Error("Unknown Symbol type" + symbol.name);
+      }
+    }
+  }
+
+  // 3rd step: Create all enums (all ambient, as they are just strings for now)
+
+  private async parseEnums(
+    config: IConfig
+  ): Promise<{ generatedEnumCount: number }> {
+    let info = { generatedEnumCount: 0 };
+
+    // Create out folder if not existing
+    if (!fs.existsSync(this.outfolder)) {
+      await MakeDirRecursiveSync(this.outfolder);
+    }
+
+    // check if enums folder exists and create it
+    if (!fs.existsSync(path.join(this.outfolder, "enums"))) {
+      await MakeDirRecursiveSync(path.join(this.outfolder, "enums"));
+    }
+
+    for (const typename in config.ambientTypes) {
+      const type = config.ambientTypes[typename];
+      this.createEnum(type, info);
+    }
+    for (const typename in config.modularTypes) {
+      const type = config.modularTypes[typename];
+      this.createEnum(type, info);
+    }
+    return info;
+  }
+
+  private createEnum(type: ISymbol, info: { generatedEnumCount: number }) {
+    if (
+      type.kind === "enum" ||
+      (type.kind === "namespace" && this.config.enums[type.name] !== undefined)
+    ) {
+      fs.writeFileSync(
+        path.join(this.outfolder, "enums", type.name + ".d.ts"),
+        this.enumTemplate(type),
+        { encoding: "utf-8" }
+      );
+      info.generatedEnumCount++;
+    }
+  }
+
+  // 4th step: Parse all Namespaces (all ambient)
+
+  private async getNamespaces(
+    config: IConfig
+  ): Promise<{ generatedNamespaceCount: number }> {
+    let info = { generatedNamespaceCount: 0 };
+
+    // Check outfolder
+    if (!fs.existsSync(this.outfolder)) {
+      await MakeDirRecursiveSync(this.outfolder);
+    }
+
+    // Create namespace folder
+    if (!fs.existsSync(path.join(this.outfolder, "namespaces"))) {
+      await MakeDirRecursiveSync(path.join(this.outfolder, "namespaces"));
+    }
+
+    // Create static class folder
+    if (!fs.existsSync(path.join(this.outfolder, "classes", "static"))) {
+      await MakeDirRecursiveSync(
+        path.join(this.outfolder, "classes", "static")
+      );
+    }
+
+    for (const symbolname in config.ambientTypes) {
+      const s = config.ambientTypes[symbolname];
+      this.pushNamespace(s, info);
+    }
+
+    for (const symbolname in config.modularTypes) {
+      const s = config.modularTypes[symbolname];
+      this.pushNamespace(s, info);
+    }
+
+    return info;
+  }
+
+  private pushNamespace(s: ISymbol, info: { generatedNamespaceCount: number }) {
+    switch (s.kind) {
+      case "namespace":
+        const ns = new ParsedNamespace(s, this.config, this);
+        this.allNamespaces.push(ns);
+        // Write to file
+        // TODO: Create folder structure
+        // fs.writeFileSync(path.join(this.outfolder, "classes", s.name + ".d.ts"), cstring, 'utf-8');
+        // this.log("Created Declaration for class '" + s.name + "'");
+        info.generatedNamespaceCount++;
+        break;
+      default:
+        this.log("New Type discovered: " + s.kind);
+    }
+  }
 
   private async getInterfaces(
     api: IApi
@@ -352,7 +469,6 @@ export class Parser implements ILogDecorator {
               this.config,
               this
             );
-            this.config.ambientTypes[s.name] = this.allInterfaces.push(i);
             info.generatedClassCount++;
             break;
           default:
@@ -570,56 +686,6 @@ export class Parser implements ILogDecorator {
     return types.join("\n");
   }
 
-  enumTemplate: HandlebarsTemplateDelegate<any> = Handlebars.compile(
-    fs.readFileSync("templates/enums.d.ts.hb", "utf-8"),
-    {
-      noEscape: true
-    }
-  );
-
-  private async getEnums(api: IApi): Promise<{ generatedEnumCount: number }> {
-    this.currentApi = api;
-    let info = { generatedEnumCount: 0 };
-
-    // Create out folder if not existing
-    if (!fs.existsSync(this.outfolder)) {
-      await MakeDirRecursiveSync(this.outfolder);
-    }
-
-    // check if enums folder exists and create it
-    if (!fs.existsSync(path.join(this.outfolder, "enums"))) {
-      await MakeDirRecursiveSync(path.join(this.outfolder, "enums"));
-    }
-
-    // Get all enums for parsing
-    if (api.symbols && api.symbols.length > 0) {
-      const enums = api.symbols.filter(
-        x =>
-          x.kind === "enum" ||
-          (x.kind === "namespace" && this.config.enums[x.name] !== undefined)
-      );
-      for (const e of enums) {
-        this.config.ambientTypes[e.name] = e;
-      }
-
-      // Parse enums using the template
-      if (enums.length > 0) {
-        fs.writeFileSync(
-          path.join(this.outfolder, "enums", api.library + ".enums.d.ts"),
-          this.enumTemplate(enums),
-          { encoding: "utf-8" }
-        );
-        this.log("Created Enums for '" + api.library + "'");
-      }
-    }
-    return info;
-  }
-
-  private allClasses: ParsedClass[] = [];
-  private allNamespaces: ParsedNamespace[] = [];
-
-  classTemplate = fs.readFileSync("templates/classModule.d.ts.hb", "utf8");
-
   private async getClasses(
     api: IApi
   ): Promise<{ generatedClassCount: number }> {
@@ -661,59 +727,10 @@ export class Parser implements ILogDecorator {
     );
     return info;
   }
-
-  private async getNamespaces(
-    api: IApi
-  ): Promise<{ generatedNamespaceCount: number }> {
-    this.currentApi = api;
-    let info = { generatedNamespaceCount: 0 };
-
-    // Check outfolder
-    if (!fs.existsSync(this.outfolder)) {
-      await MakeDirRecursiveSync(this.outfolder);
-    }
-
-    // Create namespace folder
-    if (!fs.existsSync(path.join(this.outfolder, "namespaces"))) {
-      await MakeDirRecursiveSync(path.join(this.outfolder, "namespaces"));
-    }
-
-    // Create static class folder
-    if (!fs.existsSync(path.join(this.outfolder, "classes", "static"))) {
-      await MakeDirRecursiveSync(
-        path.join(this.outfolder, "classes", "static")
-      );
-    }
-
-    if (api.symbols && api.symbols.length > 0) {
-      for (const s of api.symbols) {
-        switch (s.kind) {
-          case "enum":
-            break;
-          case "namespace":
-            const ns = new ParsedNamespace(s, this.config, this);
-            this.config.ambientTypes[s.name] = ns;
-            this.allNamespaces.push(ns);
-            // Write to file
-            // TODO: Create folder structure
-            // fs.writeFileSync(path.join(this.outfolder, "classes", s.name + ".d.ts"), cstring, 'utf-8');
-            // this.log("Created Declaration for class '" + s.name + "'");
-            info.generatedNamespaceCount++;
-            break;
-          case "class":
-            break;
-          case "interface":
-            break;
-          default:
-            this.log("New Type discovered: " + s.kind);
-        }
-      }
-    }
-
-    return info;
-  }
   log(message: string, sourceStack?: string) {
-    if (sourceStack) {
+    sourceStack = sourceStack || "";
+
+    if (this.currentApi)
       this.logger.Debug(
         "Library '" +
           this.currentApi.library +
@@ -722,10 +739,8 @@ export class Parser implements ILogDecorator {
           ": " +
           message
       );
-    } else {
-      this.logger.Debug(
-        "Library '" + this.currentApi.library + "': " + message
-      );
+    else {
+      this.logger.Debug(sourceStack + ": " + message);
     }
   }
 }

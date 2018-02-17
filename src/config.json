@@ -382,6 +382,5 @@
         "replacement": "public setConfig<T>(vConfig: string | {} | Model<T>): any;"
       }
     ]
-  },
-  "ambientTypes": {}
+  }
 }

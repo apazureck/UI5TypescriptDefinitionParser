@@ -59,8 +59,11 @@ export interface IConfig {
   };
 
   ambientTypes: {
-    [typename: string]: any;
+    [typename: string]: ISymbol;
   };
+  modularTypes: {
+    [typename: string]: ISymbol;
+  }
 }
 
 export interface IPostProcessor {
