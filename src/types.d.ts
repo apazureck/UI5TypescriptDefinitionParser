@@ -4,11 +4,11 @@ import { LogLevel } from "./log";
 export interface IConfig {
   preProcessing: {
     [jpath: string]: {
-      jsonpath: string,
-      comment: string,
-      script: string,
-    },
-  }
+      jsonpath: string;
+      comment: string;
+      script: string;
+    };
+  };
   connection: {
     root: string;
     endpoints: string[];
@@ -63,7 +63,7 @@ export interface IConfig {
   };
   modularTypes: {
     [typename: string]: ISymbol;
-  }
+  };
 }
 
 export interface IPostProcessor {
@@ -83,6 +83,7 @@ export interface ILogDecorator {
 
 export interface IImport {
   module: string;
+  basename: string;
   name: string;
   alias?: string;
 }

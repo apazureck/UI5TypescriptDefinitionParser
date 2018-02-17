@@ -7,6 +7,10 @@ import { ParsedMethod } from "./ParsedMethod";
 import * as Handlebars from "handlebars";
 import * as hbex from "../../handlebarsExtensions";
 import { ParsedParameter } from "./ParsedParameter";
+import { Log, LogLevel } from '../../log';
+import { error } from '../../../out/declarations/namespaces/sap.m.MessageBox';
+
+let logger: Log;
 
 interface IClass {
   constructors: ParsedMethod[];
@@ -20,10 +24,7 @@ export class ParsedClass extends GeneratorBase implements IClass {
   getConfig(): IConfig {
     return this.config;
   }
-  getAddImport(): (
-    typeOrModule: string,
-    context?: "static"
-  ) => string {
+  getAddImport(): (typeOrModule: string, context?: "static") => string {
     return this.onAddImport.bind(this);
   }
   constructor(
@@ -33,6 +34,9 @@ export class ParsedClass extends GeneratorBase implements IClass {
     private decorated: ILogDecorator
   ) {
     super(config);
+    if (!logger) {
+      logger = new Log("Parser", LogLevel.getValue(this.config.logLevel));
+    }
     this.createMissingProperties();
   }
   constructors: ParsedMethod[];
@@ -55,7 +59,7 @@ export class ParsedClass extends GeneratorBase implements IClass {
   }
 
   get fullName(): string {
-    return this.moduleName + "/" + this.name;
+    return this.moduleName;
   }
 
   public childClasses: ParsedClass[] = [];
@@ -200,15 +204,12 @@ export class ParsedClass extends GeneratorBase implements IClass {
    * @protected
    * @memberof ParsedClass
    */
-  protected onAddImport = (
-    typeOrModule: string,
-    context?: "static"
-  ): string => {
-    if (!typeOrModule) {
+  protected onAddImport = (typeName: string, context?: "static"): string => {
+    if (!typeName) {
       return;
     }
 
-    if (typeOrModule === "this") {
+    if (typeName === "this") {
       if (context === "static") {
         return this.name;
       } else {
@@ -216,45 +217,42 @@ export class ParsedClass extends GeneratorBase implements IClass {
       }
     }
 
-    this.log("Adding import '" + typeOrModule + "'");
+    this.log("Adding import '" + typeName + "'");
 
-    if (typeOrModule === "I" + this.name + "Settings") {
-      return typeOrModule;
+    if (typeName === "I" + this.name + "Settings") {
+      return typeName;
     }
 
-    const modulename = typeOrModule.split(this.typeSeparators);
-    const fullModuleName = modulename.join("/");
-
-    if (this.fullName === fullModuleName) {
+    if (this.fullName === typeName) {
       return context === "static" ? this.name : "this";
     }
 
-    const typename = modulename.pop();
+    if (this.config.ambientTypes[typeName]) {
+      return typeName;
+    }
 
-    const foundType = this.imports[typename];
-    // Check if type with same name is already in list
-    if (foundType) {
-      // Do nothing else if module is already imported
-      if (foundType.module === fullModuleName) {
-        return foundType.name;
-      }
-      // Otherwise add the type with the same name + alias property
-      const alias = modulename.join("_") + "_" + typename;
-
-      if (!this.imports[alias]) {
-        this.imports[alias] = {
-          name: typename,
-          module: fullModuleName,
-          alias
+    const foundType = this.imports[typeName];
+    try {
+      // Check if type with same name is already in list
+      if (foundType) {
+        // Do nothing else if module is already imported
+        return foundType.alias;
+      } else {
+        const newmodulartype = this.config.modularTypes[typeName];
+        this.imports[typeName] = {
+          basename: newmodulartype.basename,
+          name: newmodulartype.name,
+          module: newmodulartype.module,
+          alias:
+            this.name === newmodulartype.basename
+              ? newmodulartype.name.replace(/\./g, "_")
+              : undefined
         };
+        return newmodulartype.basename;
       }
-      return alias;
-    } else {
-      this.imports[typename] = {
-        name: typename,
-        module: fullModuleName
-      };
-      return typename;
+    } catch (error) {
+      logger.Error("Could not get type, returning any type: " + JSON.stringify(error));
+      return "any";
     }
   };
 
@@ -294,7 +292,7 @@ export class ParsedClass extends GeneratorBase implements IClass {
     for (const param of baseMethod.parameters) {
       param.addImports(this);
     }
-    this.methods.push(baseMethod)
+    this.methods.push(baseMethod);
   }
 }
 

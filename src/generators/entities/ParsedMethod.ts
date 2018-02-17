@@ -157,15 +157,11 @@ export class ParsedMethod extends GeneratorBase {
   public GenericParameters: string[] = [];
 
   private generateMethodParts(suppressReturnValue?: boolean): void {
-    try {
-      // If method name starts with attach it is an event
-      if (this.owner instanceof ParsedClass && this.name.startsWith("attach")) {
-        this.makeAttachEventParameters();
-      } else {
-        this.makeStandardMethodParameters(suppressReturnValue);
-      }
-    } catch (error) {
-      throw error;
+    // If method name starts with attach it is an event
+    if (this.owner instanceof ParsedClass && this.name.startsWith("attach")) {
+      this.makeAttachEventParameters();
+    } else {
+      this.makeStandardMethodParameters(suppressReturnValue);
     }
   }
 
@@ -387,14 +383,13 @@ export class ParsedMethod extends GeneratorBase {
     const thisret = this.returntype.type.split("|");
     const baseret = this.returntype.type.split("|");
 
-    for(const type of thisret) {
+    for (const type of thisret) {
       const found = baseret.indexOf(type);
-      if(found > -1) {
+      if (found > -1) {
         baseret.splice(found);
       }
     }
-    if(baseret.length > 0)
-      return true;
+    if (baseret.length > 0) return true;
 
     return false;
   }

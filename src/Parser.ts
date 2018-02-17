@@ -187,16 +187,12 @@ export class Parser implements ILogDecorator {
     await this.createNamespaceFiles();
 
     this.logger.Info("Scanning for interfaces");
-    for (const endpoint in this.observedAPIs) {
-      if (endpoint) {
-        await this.getInterfaces(this.observedAPIs[endpoint].api);
-      }
-    }
+    await this.getInterfaces(this.config);
 
     await this.ParseAllInterfaces(this.allInterfaces);
 
     this.logger.Info("Scanning apis for classes");
-    await this.getClassesFromApiJsons();
+    this.getClasses(this.config);
 
     this.logger.Info("Postprocessing all found classes");
     for (const c of this.allClasses) {
@@ -370,6 +366,12 @@ export class Parser implements ILogDecorator {
     for (const typename in config.modularTypes) {
       const type = config.modularTypes[typename];
       this.createEnum(type, info);
+      if (config.ambientTypes[typename]) {
+        let i = 0;
+      } else {
+        config.ambientTypes[typename] = config.modularTypes[typename];
+        delete config.ambientTypes[typename];
+      }
     }
     return info;
   }
@@ -405,13 +407,6 @@ export class Parser implements ILogDecorator {
       await MakeDirRecursiveSync(path.join(this.outfolder, "namespaces"));
     }
 
-    // Create static class folder
-    if (!fs.existsSync(path.join(this.outfolder, "classes", "static"))) {
-      await MakeDirRecursiveSync(
-        path.join(this.outfolder, "classes", "static")
-      );
-    }
-
     for (const symbolname in config.ambientTypes) {
       const s = config.ambientTypes[symbolname];
       this.pushNamespace(s, info);
@@ -420,6 +415,12 @@ export class Parser implements ILogDecorator {
     for (const symbolname in config.modularTypes) {
       const s = config.modularTypes[symbolname];
       this.pushNamespace(s, info);
+      if (config.ambientTypes[symbolname]) {
+        let i = 0;
+      } else {
+        config.ambientTypes[symbolname] = config.modularTypes[symbolname];
+        delete config.modularTypes[symbolname];
+      }
     }
 
     return info;
@@ -441,10 +442,151 @@ export class Parser implements ILogDecorator {
     }
   }
 
+  // 5th step: get all interfaces (all ambient)
+
   private async getInterfaces(
-    api: IApi
+    config: IConfig
   ): Promise<{ generatedClassCount: number }> {
-    this.currentApi = api;
+    let info = { generatedClassCount: 0 };
+
+    if (!fs.existsSync(this.outfolder)) {
+      await MakeDirRecursiveSync(this.outfolder);
+    }
+    if (!fs.existsSync(path.join(this.outfolder, "interfaces"))) {
+      await MakeDirRecursiveSync(path.join(this.outfolder, "interfaces"));
+    }
+
+    for (const symbolname in config.ambientTypes) {
+      const s = config.ambientTypes[symbolname];
+      this.createInterface(s, info);
+    }
+
+    for (const symbolname in config.modularTypes) {
+      const s = config.modularTypes[symbolname];
+      this.createInterface(s, info);
+      if (config.ambientTypes[symbolname]) {
+        let i = 0;
+      } else {
+        config.ambientTypes[symbolname] = config.modularTypes[symbolname];
+        delete config.modularTypes[symbolname];
+      }
+    }
+
+    this.log("Created " + info.generatedClassCount);
+    return info;
+  }
+
+  private createInterface(s: ISymbol, info: { generatedClassCount: number }) {
+    switch (s.kind) {
+      case "interface":
+        const i = new ParsedClass(s, this.interfaceTemplate, this.config, this);
+        this.allInterfaces.push(i);
+        info.generatedClassCount++;
+        break;
+      default:
+    }
+  }
+
+  private async ParseAllInterfaces(
+    allInterfaces: ParsedClass[]
+  ): Promise<void> {
+    return new Promise<void>(async (resolve, reject) => {
+      const classcount = allInterfaces.length;
+      let generatedclasses = 0;
+      for (const c of allInterfaces) {
+        try {
+          await this.ParseInterface(c);
+          generatedclasses++;
+          if (!(generatedclasses < classcount)) {
+            resolve();
+          }
+        } catch {
+          generatedclasses++;
+        }
+      }
+    });
+  }
+
+  private async ParseInterface(c: ParsedClass): Promise<void> {
+    const filepath = path.join(
+      this.outfolder,
+      "interfaces",
+      c.fullName + "." + c.name + ".d.ts"
+    );
+    this.log("Creating interface " + filepath);
+    try {
+      await MakeDirRecursiveSync(path.dirname(filepath));
+      try {
+        fs.writeFileSync(filepath, c.toString(), { encoding: "utf-8" });
+      } catch (error) {
+        console.error(
+          "Error writing file " + filepath + ": " + error.toString()
+        );
+      }
+    } catch (err) {
+      console.error(
+        "Error creating folder for file " + filepath + ": " + err.toString()
+      );
+    }
+  }
+
+  // 6th step: parse all classes
+
+  private async ParseAllClasses(allClasses: ParsedClass[]): Promise<void> {
+    return new Promise<void>(async (resolve, reject) => {
+      let bar = createNewProgressBar("Creating class files", allClasses.length);
+      const classcount = allClasses.length;
+      let generatedclasses = 0;
+      for (const c of allClasses) {
+        try {
+          bar.tick();
+          await this.ParseClass(c);
+          generatedclasses++;
+          if (!(generatedclasses < classcount)) {
+            resolve();
+          }
+        } catch {
+          generatedclasses++;
+        }
+      }
+    });
+  }
+
+  private async ParseClass(c: ParsedClass): Promise<void> {
+    const filepath = path.join(this.outfolder, "classes", c.fullName + ".d.ts");
+    this.log("Creating class " + filepath);
+    try {
+      await MakeDirRecursiveSync(path.dirname(filepath));
+      try {
+        fs.writeFileSync(filepath, c.toString(), { encoding: "utf-8" });
+      } catch (error) {
+        console.error(
+          "Error writing file " + filepath + ": " + error.toString()
+        );
+      }
+    } catch (err) {
+      console.error(
+        "Error creating folder for file " + filepath + ": " + err.toString()
+      );
+    }
+  }
+
+  private CreateClassOverloads() {
+    const baseclasses = this.allClasses.filter(
+      (value, index, array) => !value.baseclass
+    );
+    this.logger.Info("Pushing overloads for classes.");
+    var bar = createNewProgressBar("Pushing overloads", baseclasses.length);
+    for (const bc of baseclasses) {
+      bar.tick();
+      bc.pushOverloads();
+    }
+    this.logger.Info("Overloads done");
+  }
+
+  private async getClasses(
+    config: IConfig
+  ): Promise<{ generatedClassCount: number }> {
     let info = { generatedClassCount: 0 };
 
     if (!fs.existsSync(this.outfolder)) {
@@ -453,38 +595,33 @@ export class Parser implements ILogDecorator {
     if (!fs.existsSync(path.join(this.outfolder, "classes"))) {
       await MakeDirRecursiveSync(path.join(this.outfolder, "classes"));
     }
-    if (api.symbols && api.symbols.length > 0) {
-      for (const s of api.symbols) {
-        switch (s.kind) {
-          case "enum":
-            break;
-          case "class":
-            break;
-          case "namespace":
-            break;
-          case "interface":
-            const i = new ParsedClass(
-              s,
-              this.interfaceTemplate,
-              this.config,
-              this
-            );
-            info.generatedClassCount++;
-            break;
-          default:
-            this.log("New Type discovered: " + s.kind);
-        }
-      }
+
+    for (const symbolname in config.ambientTypes) {
+      const s = config.ambientTypes[symbolname];
+      this.pushClass(s, info);
     }
 
-    this.log(
-      "Created " +
-        info.generatedClassCount +
-        " interfaces of Library " +
-        api.library
-    );
+    for (const symbolname in config.modularTypes) {
+      const s = config.modularTypes[symbolname];
+      this.pushClass(s, info);
+    }
+    this.log("Created " + info.generatedClassCount);
     return info;
   }
+
+  private pushClass(s: ISymbol, info: { generatedClassCount: number }) {
+    switch (s.kind) {
+      case "class":
+        this.allClasses.push(
+          new ParsedClass(s, this.classTemplate, this.config, this)
+        );
+        info.generatedClassCount++;
+        break;
+      default:
+    }
+  }
+
+  // 7th step: Do post processing
 
   private escapeRegExp(str: string): string {
     return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
@@ -527,114 +664,6 @@ export class Parser implements ILogDecorator {
     fs.writeFileSync(fullFilePath, content);
   }
 
-  private async getClassesFromApiJsons(): Promise<void> {
-    let apicount = 0;
-    for (const endpoint in this.observedAPIs) {
-      apicount++;
-    }
-
-    let finishedApiCount = 0;
-
-    const apifinished = (resolve: () => void) => {
-      finishedApiCount++;
-      if (!(finishedApiCount < apicount)) {
-        resolve();
-      }
-    };
-    return new Promise<void>((resolve, reject) => {
-      let bar = createNewProgressBar("Scanning APIs", apicount);
-      for (const endpoint in this.observedAPIs) {
-        bar.tick();
-        if (endpoint) {
-          this.getClasses(this.observedAPIs[endpoint].api).then(() =>
-            apifinished(resolve)
-          );
-        }
-      }
-    });
-  }
-
-  private async ParseAllClasses(allClasses: ParsedClass[]): Promise<void> {
-    return new Promise<void>(async (resolve, reject) => {
-      let bar = createNewProgressBar("Creating class files", allClasses.length);
-      const classcount = allClasses.length;
-      let generatedclasses = 0;
-      for (const c of allClasses) {
-        try {
-          bar.tick();
-          await this.ParseClass(c);
-          generatedclasses++;
-          if (!(generatedclasses < classcount)) {
-            resolve();
-          }
-        } catch {
-          generatedclasses++;
-        }
-      }
-    });
-  }
-
-  private async ParseAllInterfaces(
-    allInterfaces: ParsedClass[]
-  ): Promise<void> {
-    return new Promise<void>(async (resolve, reject) => {
-      const classcount = allInterfaces.length;
-      let generatedclasses = 0;
-      for (const c of allInterfaces) {
-        try {
-          await this.ParseInterface(c);
-          generatedclasses++;
-          if (!(generatedclasses < classcount)) {
-            resolve();
-          }
-        } catch {
-          generatedclasses++;
-        }
-      }
-    });
-  }
-  private async ParseClass(c: ParsedClass): Promise<void> {
-    const filepath = path.join(this.outfolder, "classes", c.fullName + ".d.ts");
-    this.log("Creating class " + filepath);
-    try {
-      await MakeDirRecursiveSync(path.dirname(filepath));
-      try {
-        fs.writeFileSync(filepath, c.toString(), { encoding: "utf-8" });
-      } catch (error) {
-        console.error(
-          "Error writing file " + filepath + ": " + error.toString()
-        );
-      }
-    } catch (err) {
-      console.error(
-        "Error creating folder for file " + filepath + ": " + err.toString()
-      );
-    }
-  }
-
-  private async ParseInterface(c: ParsedClass): Promise<void> {
-    const filepath = path.join(
-      this.outfolder,
-      "interfaces",
-      c.fullName + "." + c.name + ".d.ts"
-    );
-    this.log("Creating class " + filepath);
-    try {
-      await MakeDirRecursiveSync(path.dirname(filepath));
-      try {
-        fs.writeFileSync(filepath, c.toString(), { encoding: "utf-8" });
-      } catch (error) {
-        console.error(
-          "Error writing file " + filepath + ": " + error.toString()
-        );
-      }
-    } catch (err) {
-      console.error(
-        "Error creating folder for file " + filepath + ": " + err.toString()
-      );
-    }
-  }
-
   async formatAllFiles(): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       gulp
@@ -644,19 +673,6 @@ export class Parser implements ILogDecorator {
         .on("end", () => resolve())
         .on("error", () => reject());
     });
-  }
-
-  private CreateClassOverloads() {
-    const baseclasses = this.allClasses.filter(
-      (value, index, array) => !value.baseclass
-    );
-    this.logger.Info("Pushing overloads for classes.");
-    var bar = createNewProgressBar("Pushing overloads", baseclasses.length);
-    for (const bc of baseclasses) {
-      bar.tick();
-      bc.pushOverloads();
-    }
-    this.logger.Info("Overloads done");
   }
 
   private replaceFiles(sourcePath: string, outPath: string) {
@@ -686,47 +702,6 @@ export class Parser implements ILogDecorator {
     return types.join("\n");
   }
 
-  private async getClasses(
-    api: IApi
-  ): Promise<{ generatedClassCount: number }> {
-    this.currentApi = api;
-    let info = { generatedClassCount: 0 };
-
-    if (!fs.existsSync(this.outfolder)) {
-      await MakeDirRecursiveSync(this.outfolder);
-    }
-    if (!fs.existsSync(path.join(this.outfolder, "classes"))) {
-      await MakeDirRecursiveSync(path.join(this.outfolder, "classes"));
-    }
-    if (api.symbols && api.symbols.length > 0) {
-      for (const s of api.symbols) {
-        switch (s.kind) {
-          case "enum":
-            break;
-          case "class":
-            this.allClasses.push(
-              new ParsedClass(s, this.classTemplate, this.config, this)
-            );
-            info.generatedClassCount++;
-            break;
-          case "namespace":
-            break;
-          case "interface":
-            break;
-          default:
-            this.log("New Type discovered: " + s.kind);
-        }
-      }
-    }
-
-    this.log(
-      "Created " +
-        info.generatedClassCount +
-        " classes of Library " +
-        api.library
-    );
-    return info;
-  }
   log(message: string, sourceStack?: string) {
     sourceStack = sourceStack || "";
 
