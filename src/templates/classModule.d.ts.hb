@@ -1,13 +1,13 @@
-declare module '{{fullName}}' {
-{{#each imports~}}{{#ifCond ../baseclass.fullName '!=' this.module}}{{#ifCond ../fullName '!=' this.module}} import { {{this.name}}{{#if this.alias}} as {{this.alias}}{{/if}} } from '{{this.module}}';
+declare module '{{module}}' {
+{{#each imports~}}{{#ifCond ../baseclass.name '!=' this.name}}{{#ifCond ../name '!=' this.name}} import { {{this.basename}}{{#if this.alias}} as {{this.alias}}{{/if}} } from '{{this.module}}';
 {{/ifCond}}{{/ifCond}}
 {{~/each}}
-{{~#if baseclass}}import { {{baseclass.name}}{{#ifCond baseclass.name '==' name}} as {{baseclass.name}}Base{{/ifCond}}, I{{baseclass.name}}Settings } from '{{baseclass.moduleName}}/{{baseclass.name}}';{{/if}}
+{{~#if baseclass}}import { {{baseclass.basename}}{{#ifCond baseclass.basename '==' basename}} as {{baseclass.basename}}Base{{/ifCond}}, I{{baseclass.basename}}Settings{{#ifCond baseclass.basename '==' basename}} as I{{baseclass.basename}}BaseSettings{{/ifCond}} } from '{{baseclass.module}}';{{/if}}
 
-export interface I{{name}}Settings
-{{~#if baseclass}} extends I{{baseclass.name}}Settings {{/if}}{
+export interface I{{basename}}Settings
+{{~#if baseclass}} extends I{{baseclass.basename}}{{#ifCond baseclass.basename '==' basename}}Base{{/ifCond}}Settings {{/if}}{
 {{#each settingsInterfaceProperties}}
-{{this.name}}?: {{this.type}}
+{{this.name}}?: {{this.type}};
 {{/each}}
 }
 
@@ -15,7 +15,7 @@ export interface I{{name}}Settings
 {{parsedDescription}}
 */
 {{/if}}
-export class {{name}} {{#if baseclass}}extends {{baseclass.name}}{{#ifCond baseclass.name '==' name}}Base{{/ifCond}}{{/if}}{
+export class {{basename}} {{#if baseclass}}extends {{baseclass.basename}}{{#ifCond baseclass.basename '==' basename}}Base{{/ifCond}}{{/if}}{
 
 {{#if constructors.length~}}
 {{#each constructors}}

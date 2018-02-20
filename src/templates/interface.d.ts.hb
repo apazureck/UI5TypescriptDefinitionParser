@@ -4,7 +4,7 @@ declare namespace {{namespace}} {
 {{parsedDescription}}
 */
 {{/if}}
-export interface {{name}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}{
+export interface {{basename}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}{
 
 {{#if events.length}}
     {{#each events}}

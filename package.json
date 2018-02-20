@@ -24,6 +24,8 @@
   "homepage": "https://github.com/apazureck/UI5TypescriptDefinitionParser#readme",
   "devDependencies": {
     "@types/gulp": "^4.0.4",
+    "@types/gulp-debug": "^2.0.31",
+    "@types/gulp-plumber": "0.0.32",
     "@types/gulp-util": "^3.0.31",
     "@types/handlebars": "^4.0.36",
     "@types/lodash": "^4.14.102",
@@ -33,6 +35,9 @@
     "@types/progress": "^2.0.1",
     "del": "^3.0.0",
     "gulp": "^3.9.1",
+    "gulp-clean": "^0.4.0",
+    "gulp-debug": "^3.2.0",
+    "gulp-plumber": "^1.2.0",
     "gulpclass": "^0.1.2",
     "typescript": "^2.4.1"
   },

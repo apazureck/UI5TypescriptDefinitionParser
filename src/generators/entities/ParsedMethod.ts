@@ -10,6 +10,7 @@ import { ParsedClass } from "./ParsedClass";
 import { ParsedNamespace } from "./ParsedNamespace";
 import { ParsedParameter } from "./ParsedParameter";
 import * as _ from "lodash";
+import { ParsedEvent } from "./ParsedEvent";
 
 export class ParsedMethod extends GeneratorBase {
   overloadedMethod: ParsedMethod;
@@ -159,7 +160,12 @@ export class ParsedMethod extends GeneratorBase {
   private generateMethodParts(suppressReturnValue?: boolean): void {
     // If method name starts with attach it is an event
     if (this.owner instanceof ParsedClass && this.name.startsWith("attach")) {
-      this.makeAttachEventParameters();
+      const eventname = /attach(.*)/.exec(this.name)[1].toLocaleLowerCase();
+      const event = (this.owner as ParsedClass).events.find(
+        x => x.name.toLowerCase() === eventname
+      );
+      if (event) this.makeAttachEventParameters(event);
+      else this.makeStandardMethodParameters(suppressReturnValue);
     } else {
       this.makeStandardMethodParameters(suppressReturnValue);
     }
@@ -177,21 +183,24 @@ export class ParsedMethod extends GeneratorBase {
         (value, index, array) =>
           new ParsedParameter(
             value,
-            (this.owner as ParsedClass).name,
+            (this.owner as ParsedClass).basename,
             this.onAddImport,
             this.config,
             this,
-            "static"
+            this.isStatic ? "static" : undefined
           )
       );
     }
     if (suppressReturnValue) {
-    } else if (this.wrappedMethod.returnValue) {
+    } else this.createReturnType();
+  }
+
+  private createReturnType() {
+    if (this.wrappedMethod.returnValue) {
       let restypes: {
         restype: string;
         origintype: string;
       }[] = [];
-
       let rtype = this.getType(
         this.wrappedMethod.returnValue.type,
         this.isStatic ? "static" : undefined,
@@ -203,7 +212,6 @@ export class ParsedMethod extends GeneratorBase {
         description: this.wrappedMethod.returnValue.description,
         unknown: false
       };
-
       for (const t of restypes) {
         this.returntype.rawTypes[t.restype] = t.origintype;
       }
@@ -217,9 +225,7 @@ export class ParsedMethod extends GeneratorBase {
     }
   }
 
-  private makeAttachEventParameters(): void {
-    const eventname = /attach(.*)/.exec(this.name)[1].toLocaleLowerCase();
-
+  private makeAttachEventParameters(event: ParsedEvent): void {
     // Check which parameters got used
     let objParam = this.wrappedMethod.parameters.find(x => x.name === "oData");
     let func = this.wrappedMethod.parameters.find(x => x.name === "fnFunction");
@@ -231,7 +237,7 @@ export class ParsedMethod extends GeneratorBase {
     if (objParam) {
       const coparam = new ParsedParameter(
         objParam,
-        this.owner.name,
+        this.owner.basename,
         undefined,
         this.config,
         this,
@@ -246,12 +252,9 @@ export class ParsedMethod extends GeneratorBase {
 
     // add event function callback parameter
     if (func) {
-      const event = (this.owner as ParsedClass).events.find(
-        x => x.name.toLowerCase() === eventname
-      );
       const cfunc = new ParsedParameter(
         func,
-        this.owner.name,
+        this.owner.basename,
         undefined,
         this.config,
         this,
@@ -264,20 +267,18 @@ export class ParsedMethod extends GeneratorBase {
         rawTypes: {}
       };
 
-      if (event) {
-        try {
-          cfunc.type =
-            "(" +
-            (context ? "this: Tcontext, " : "this: this") +
-            "oEvent: " +
-            event.parameters[0].type +
-            (objParam !== undefined
-              ? ", oCustomData?: TcustomData) => void"
-              : ") => void");
-          func.typeAlreadyProcessed = true;
-        } catch (error) {
-          let i = 0;
-        }
+      try {
+        cfunc.type =
+          "(" +
+          (context ? "this: Tcontext, " : "this: this") +
+          "oEvent: " +
+          event.callback +
+          (objParam !== undefined
+            ? ", oCustomData?: TcustomData) => void"
+            : ") => void");
+        func.typeAlreadyProcessed = true;
+      } catch (error) {
+        let i = 0;
       }
     }
 
@@ -285,7 +286,7 @@ export class ParsedMethod extends GeneratorBase {
     if (context) {
       const cparam = new ParsedParameter(
         context,
-        this.owner.name,
+        this.owner.basename,
         undefined,
         this.config,
         this,
@@ -299,6 +300,10 @@ export class ParsedMethod extends GeneratorBase {
         this.IsGeneric = true;
         this.GenericParameters.push(cparam.type);
       }
+    }
+
+    if (!this.returntype) {
+      this.createReturnType();
     }
   }
 
@@ -408,7 +413,7 @@ export class ParsedMethod extends GeneratorBase {
       "\n\n_Overloads " +
       basemethod.name +
       " of class " +
-      basemethod.owner.name +
+      basemethod.owner.basename +
       "_";
     return this.mergeBaseType(basemethod);
   }

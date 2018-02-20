@@ -84,6 +84,10 @@ export function registerHelpers(Handlebars: any) {
     return fullname.split(".").pop();
   });
 
+  Handlebars.registerHelper("toNamespace", function(fullname: string) {
+    return fullname.replace(/\//g, ".");
+  });
+
   Handlebars.registerHelper("documentThis", function(text: string) {
     return makeComment(styleJsDoc(text));
   });
@@ -94,7 +98,7 @@ export function registerHelpers(Handlebars: any) {
 }
 
 function checkIfIsTypeTheSame(pc: ParsedClass, type: string): boolean {
-  if (pc.name === type) {
+  if (pc.basename === type) {
     return true;
   } else {
     if (pc.baseclass) {

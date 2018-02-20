@@ -1,14 +1,13 @@
 import { Gulpclass, Task, SequenceTask } from "gulpclass";
 import * as gulp from "gulp";
-import * as del from "del";
+import * as del from "gulp-clean";
 import { Parser } from "./src/Parser";
+import * as fs from "fs";
+import * as debug from "gulp-debug";
+import * as plumber from "gulp-plumber"
 
 @Gulpclass()
 export class Gulpfile {
-  @Task()
-  clean(cb: Function) {
-    return del(["out/**/*"], cb);
-  }
 
   @Task()
   copySourceFiles() {
@@ -24,12 +23,19 @@ export class Gulpfile {
   default() {
     // because this task has "default" name it will be run as default gulp task
     return [
+      "deleteDeclarations",
       "copySourceFiles",
       "copyHandlebarsTemplates",
       "replaceFiles",
       "runTest",
       "copyDeclarationsToTestFolder"
     ];
+  }
+  
+  @Task()
+  deleteDeclarations() {
+      return gulp.src(["declarations", "test/declarations"], { read: false})
+      .pipe(del());
   }
 
   @Task()

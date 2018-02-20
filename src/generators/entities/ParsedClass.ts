@@ -1,14 +1,13 @@
 import * as events from "events";
-import { IConfig, IImport, ILogDecorator } from "../../types";
-import { ISymbol, IParameter, IProperty } from "../../UI5DocumentationTypes";
-import { GeneratorBase } from "../GeneratorBase";
-import { ParsedEvent } from "./ParsedEvent";
-import { ParsedMethod } from "./ParsedMethod";
 import * as Handlebars from "handlebars";
 import * as hbex from "../../handlebarsExtensions";
+import { GeneratorBase } from "../GeneratorBase";
+import { IConfig, IImport, ILogDecorator } from "../../types";
+import { IParameter, IProperty, ISymbol } from "../../UI5DocumentationTypes";
+import { Log, LogLevel } from "../../log";
+import { ParsedEvent } from "./ParsedEvent";
+import { ParsedMethod } from "./ParsedMethod";
 import { ParsedParameter } from "./ParsedParameter";
-import { Log, LogLevel } from '../../log';
-import { error } from '../../../out/declarations/namespaces/sap.m.MessageBox';
 
 let logger: Log;
 
@@ -29,9 +28,10 @@ export class ParsedClass extends GeneratorBase implements IClass {
   }
   constructor(
     private documentClass: ISymbol,
-    private classTemplate: string,
+    private classTemplate: HandlebarsTemplateDelegate<any>,
     config: IConfig,
-    private decorated: ILogDecorator
+    private decorated: ILogDecorator,
+    private isAmbient?: boolean
   ) {
     super(config);
     if (!logger) {
@@ -40,7 +40,7 @@ export class ParsedClass extends GeneratorBase implements IClass {
     this.createMissingProperties();
   }
   constructors: ParsedMethod[];
-  get name(): string {
+  get basename(): string {
     return this.documentClass.basename;
   }
 
@@ -50,16 +50,12 @@ export class ParsedClass extends GeneratorBase implements IClass {
     return ret.join(".");
   }
 
-  get moduleName(): string {
-    let moduleparts = this.documentClass.module.split(this.typeSeparators);
-    return this.documentClass.module
-      .split(this.typeSeparators)
-      .splice(0, moduleparts.length - 1)
-      .join("/");
+  get module(): string {
+    return this.documentClass.module;
   }
 
-  get fullName(): string {
-    return this.moduleName;
+  get name(): string {
+    return this.documentClass.name;
   }
 
   public childClasses: ParsedClass[] = [];
@@ -93,21 +89,18 @@ export class ParsedClass extends GeneratorBase implements IClass {
   private imports: { [key: string]: IImport };
 
   toString(): string {
-    const template = Handlebars.compile(this.classTemplate, {
-      noEscape: true
-    });
-    this.parsedDescription = this.createDescription(this.description);
-    return template(this);
+    // this.parsedDescription = this.createDescription(this.description);
+    return this.classTemplate(this);
   }
 
   log(message: string, sourceStack?: string): void {
     if (sourceStack) {
       this.decorated.log(
-        "Class '" + this.name + "' -> " + sourceStack,
+        "Class '" + this.basename + "' -> " + sourceStack,
         message
       );
     } else {
-      this.decorated.log("Class '" + this.name + "'", message);
+      this.decorated.log("Class '" + this.basename + "'", message);
     }
   }
 
@@ -211,23 +204,29 @@ export class ParsedClass extends GeneratorBase implements IClass {
 
     if (typeName === "this") {
       if (context === "static") {
-        return this.name;
+        if (this.isAmbient) return this.name;
+        else return this.basename;
       } else {
-        return "this";
+        if (this.isAmbient) return this.name;
+        else return "this";
       }
     }
 
     this.log("Adding import '" + typeName + "'");
 
-    if (typeName === "I" + this.name + "Settings") {
+    if (typeName === "I" + this.basename + "Settings") {
       return typeName;
     }
 
-    if (this.fullName === typeName) {
-      return context === "static" ? this.name : "this";
+    if (this.name === typeName) {
+      return context === "static" ? (this.isAmbient ? this.name : this.basename) : "this";
     }
 
     if (this.config.ambientTypes[typeName]) {
+      return typeName;
+    }
+
+    if (this.isAmbient) {
       return typeName;
     }
 
@@ -236,7 +235,10 @@ export class ParsedClass extends GeneratorBase implements IClass {
       // Check if type with same name is already in list
       if (foundType) {
         // Do nothing else if module is already imported
-        return foundType.alias;
+        return (
+          foundType.alias ||
+          (this.isAmbient ? foundType.name : foundType.basename)
+        );
       } else {
         const newmodulartype = this.config.modularTypes[typeName];
         this.imports[typeName] = {
@@ -244,14 +246,16 @@ export class ParsedClass extends GeneratorBase implements IClass {
           name: newmodulartype.name,
           module: newmodulartype.module,
           alias:
-            this.name === newmodulartype.basename
+            this.basename === newmodulartype.basename
               ? newmodulartype.name.replace(/\./g, "_")
               : undefined
         };
         return newmodulartype.basename;
       }
     } catch (error) {
-      logger.Error("Could not get type, returning any type: " + JSON.stringify(error));
+      logger.Error(
+        "Could not get type, returning any type: " + JSON.stringify(error)
+      );
       return "any";
     }
   };

@@ -1,4 +1,4 @@
-declare namespace {{this.name}} {
+declare namespace {{toNamespace this.name}} {
     {{#if this.methods.length~}}
     // Methods
     {{#each this.methods~}}

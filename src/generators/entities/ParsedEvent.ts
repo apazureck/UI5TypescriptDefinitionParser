@@ -19,7 +19,7 @@ export class ParsedEvent extends GeneratorBase {
   ) {
     super(config);
     this.onAddImport = addImport;
-    this.createEvent(wrappedEvent, ownerClass.name);
+    this.createEvent(wrappedEvent, ownerClass.basename);
   }
 
   get name(): string {
@@ -36,12 +36,15 @@ export class ParsedEvent extends GeneratorBase {
 
   parameters: ParsedParameter[];
 
+  private isBaseEvent: boolean = false;
+
   private createEvent(event: IEvent, className: string): void {
     // this.createDescription(event.description, event.parameters) + "\n";
 
     this.parameters = [];
     if (event.parameters.length) {
       if (event.parameters[0].type === "sap.ui.base.Event") {
+        this.isBaseEvent = true;
         this.parameters.push(
           new ParsedParameter(
             event.parameters[0],
@@ -52,30 +55,38 @@ export class ParsedEvent extends GeneratorBase {
             "static"
           )
         );
-      } else if (
-        event.parameters[0].parameterProperties &&
-        event.parameters[0].parameterProperties.length > 0 &&
-        event.parameters[0].parameterProperties[0].name === "getParameters"
-      ) {
-        this.parameters.push(
-          new ParsedParameter(
-            event.parameters[0],
-            className,
-            this.onAddImport,
-            this.config,
-            this
-          )
-        );
       } else {
+        this.parameters = event.parameters.map(
+          x =>
+            new ParsedParameter(
+              x,
+              className,
+              this.onAddImport,
+              this.config,
+              this,
+            )
+        );
         // May be a jquery event?
         this.log("ODD EVENT PARAMETERSET!");
       }
     } else {
-        this.log("ODD EVENT PARAMETERSET!");
+      this.log("ODD EVENT PARAMETERSET!");
     }
   }
   get asString(): string {
     return this.toString();
+  }
+
+  get callback(): string {
+    if (!this.isBaseEvent) {
+      let ret = "(";
+      ret += this.parameters
+        .map((value, index, array) => value.toString())
+        .join(", ");
+      return ret + ") => void;";
+    } else {
+      return this.parameters[0].type;
+    }
   }
 
   toString(): string {

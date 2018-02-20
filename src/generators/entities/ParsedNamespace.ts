@@ -11,6 +11,10 @@ export class ParsedNamespace extends GeneratorBase {
         return this.documentNamespace.name;
     };
 
+    public get basename(): string {
+        return this.documentNamespace.basename;
+    }
+
     public methods: ParsedMethod[] = [];
     public fields: ParsedField[] = [];
     constructor(private documentNamespace: ISymbol, config: IConfig, private decorated: ILogDecorator) {
