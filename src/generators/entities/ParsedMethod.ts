@@ -39,9 +39,12 @@ export class ParsedMethod extends GeneratorBase {
     private decorated: ILogDecorator,
     config: IConfig,
     private owner: ParsedClass | ParsedNamespace,
-    private suppressReturnValue?: boolean
+    private suppressReturnValue?: boolean,
+    forcteStatic?: boolean
   ) {
     super(config);
+    if(forcteStatic)
+      this.wrappedMethod.static = true;
     this.onAddImport = onAddImport;
     this.generateMethodParts(suppressReturnValue);
   }
@@ -87,7 +90,8 @@ export class ParsedMethod extends GeneratorBase {
     decorated: ILogDecorator,
     config: IConfig,
     owner: ParsedClass | ParsedNamespace,
-    suppressReturnValue?: boolean
+    suppressReturnValue?: boolean,
+    context?: "static"
   ): ParsedMethod[] {
     if (method.parameters && method.parameters.length > 1) {
       let overloads: ParsedMethod[] = [];
@@ -116,7 +120,8 @@ export class ParsedMethod extends GeneratorBase {
               decorated,
               config,
               owner,
-              suppressReturnValue
+              suppressReturnValue,
+              context ? true : false
             )
           );
           method.parameters.splice(firstOptionalIndex, 0, save);
@@ -386,15 +391,15 @@ export class ParsedMethod extends GeneratorBase {
 
     // Check if this method contains all types of basetype.
     const thisret = this.returntype.type.split("|");
-    const baseret = this.returntype.type.split("|");
+    const baseret = method.returntype.type.split("|");
 
-    for (const type of thisret) {
-      const found = baseret.indexOf(type);
+    for (const type of baseret) {
+      const found = thisret.indexOf(type);
       if (found > -1) {
-        baseret.splice(found);
+        thisret.splice(found, 1);
       }
     }
-    if (baseret.length > 0) return true;
+    if (thisret.length > 0) return true;
 
     return false;
   }
@@ -409,12 +414,12 @@ export class ParsedMethod extends GeneratorBase {
   overload(basemethod: ParsedMethod): ParsedMethod {
     this.visibility = basemethod.visibility;
     this.importBaseMethodParameters(basemethod.parameters);
-    this.wrappedMethod.description +=
-      "\n\n_Overloads " +
-      basemethod.name +
-      " of class " +
-      basemethod.owner.basename +
-      "_";
+    // this.wrappedMethod.description +=
+    //   "\n\n_Overloads " +
+    //   basemethod.name +
+    //   " of class " +
+    //   basemethod.owner.basename +
+    //   "_";
     return this.mergeBaseType(basemethod);
   }
 

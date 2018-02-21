@@ -22,7 +22,7 @@ export class {{basename}} {{#if baseclass}}extends {{baseclass.basename}}{{#ifCo
 /**
     {{documentThis this.description}}
 */
-{{this.visibility}} {{#if this.isStatic}}static {{/if}}{{this.name}}(
+{{this.visibility}} {{this.name}}(
     {{~#if this.parameters.length~}}
     {{~#each this.parameters~}}
         {{#unless @first}} {{/unless}}{{this.name}}: {{this.type}}{{#unless @last}},{{/unless}}

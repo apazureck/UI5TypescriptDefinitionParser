@@ -161,7 +161,8 @@ export class ParsedClass extends GeneratorBase implements IClass {
           this,
           this.config,
           this,
-          true
+          true,
+          "static"
         );
       }
     } catch (error) {
@@ -219,7 +220,9 @@ export class ParsedClass extends GeneratorBase implements IClass {
     }
 
     if (this.name === typeName) {
-      return context === "static" ? (this.isAmbient ? this.name : this.basename) : "this";
+      return context === "static"
+        ? this.isAmbient ? this.name : this.basename
+        : "this";
     }
 
     if (this.config.ambientTypes[typeName]) {
@@ -254,7 +257,9 @@ export class ParsedClass extends GeneratorBase implements IClass {
       }
     } catch (error) {
       logger.Error(
-        "Could not get type, returning any type: " + JSON.stringify(error)
+        `Could not get type for ${typeName}, returning any type : ${
+          error.message
+        }`
       );
       return "any";
     }
@@ -308,13 +313,18 @@ function getOverloadFromBaseClass(
     return;
   }
   for (const basemethod of baseclass.methods) {
-    const overload = childclass.methods.find((value, index, array) =>
-      value.IsOverload(basemethod)
+    const possibleOverloads = childclass.methods.filter(
+      (value, index, array) => value.name === basemethod.name
     );
-    if (overload) {
-      const original = overload.overload(basemethod);
-      if (original) {
-        childclass.pushMethodFromBaseClass(original);
+    if (possibleOverloads.length > 0) {
+      const match = possibleOverloads.find(x => !x.IsOverload(basemethod));
+      if (!match) {
+        const overload = possibleOverloads.find(x => x.IsOverload(basemethod));
+        const original = overload.overload(basemethod);
+        if (original) {
+          childclass.pushMethodFromBaseClass(original);
+        }
+        // TODO: Find best method to overload, maybe with better return parameter of isoverload
       }
     }
   }

@@ -11,7 +11,7 @@ export class {{name}} {{#if baseclass}}extends {{baseclass.name}}{{#ifCond basec
 /**
     {{documentThis this.description}}
 */
-{{this.visibility}} {{#if this.isStatic}}static {{/if}}{{this.name}}(
+{{this.visibility}} {{this.name}}(
     {{~#if this.parameters.length~}}
     {{~#each this.parameters~}}
         {{#unless @first}} {{/unless}}{{this.name}}: {{this.type}}{{#unless @last}},{{/unless}}

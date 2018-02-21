@@ -134,7 +134,6 @@
       "declare namespace sap.ui.model {\nexport type Modelname = string;\n}",
     "sap.m.IconTabBarSelectList":
       "declare namespace sap.m {\nexport type IconTabBarSelectList = any;\n}",
-    "jQuery.Event": "declare namespace jQuery {\nexport type Event = any;\n}",
     "jQuery.sap.log.Logger":
       "declare namespace jQuery.sap.log {\nexport type Logger = {};\n}",
     "sap.ui.core.CSSColor":

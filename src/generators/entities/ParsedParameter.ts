@@ -30,13 +30,13 @@ export class ParsedParameter extends GeneratorBase {
       this.customType = true;
     } else {
       this.optional = param.optional ? true : false;
-      this.type = this.getType(param.type);
+      this.type = this.getType(param.type, this.context);
     }
   }
 
-  getType(originType: string): string {
+  getType(originType: string, context?: "static"): string {
     if (this.param.typeAlreadyProcessed) return this.param.type;
-    else return super.getType(originType, this.context);
+    else return super.getType(originType, context);
   }
 
   private createEventType(
@@ -44,7 +44,7 @@ export class ParsedParameter extends GeneratorBase {
     className: string,
     createDescription: boolean
   ): string {
-    let eventtype = this.getType(param.type);
+    let eventtype = this.getType(param.type, this.context);
     eventtype += "<" + "this" + ", ";
     if (
       param.parameterProperties &&
@@ -88,7 +88,7 @@ export class ParsedParameter extends GeneratorBase {
 
         ret += this.cleanName(pp.name, this.config);
         ret += pp.optional ? "?: " : ": ";
-        ret += this.getType(pp.type) + ", ";
+        ret += this.getType(pp.type, "static") + ", ";
       }
     }
 
