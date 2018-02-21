@@ -147,7 +147,15 @@
     "sap.ui.layout.GridIndent":
       "declare namespace sap.ui.layout {\nexport type GridIndent = string;\n}",
     "sap.ui.layout.GridSpan":
-      "declare namespace sap.ui.layout {\nexport type GridSpan = string;\n}"
+      "declare namespace sap.ui.layout {\nexport type GridSpan = string;\n}",
+    "sap.ui.core.Collision":
+      "declare namespace sap.ui.core { export type Collision = 'flip flip' | 'fit flip' | 'none flip' | 'flip fit' | 'fit fit' | 'none fit' | 'flip none' | 'fit none' | 'none none'; }",
+    "sap.ui.layout.form.GridElementCells":
+      "declare namespace sap.ui.layout.form { export type GridElementCells = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 'auto' | 'full'; }",
+    "sap.ui.model.odata.v2.ODataAnnotations.Source":
+      "declare namespace sap.ui.model.odata.v2.ODataAnnotations { export type Source = string; }",
+    "sap.uxap.BlockBaseColumnLayout":
+      "declare namespace sap.uxap { export type BlockBaseColumnLayout = 'auto' | 1 | 2 | 3; }"
   },
   "cleanParamNames": {
     "<code>vData</code>": "vData",
@@ -190,6 +198,13 @@
       "comment": "Makes jquery sap history a namespace, not a class",
       "script": "val.kind = 'namespace';",
       "jsonpath": "$.symbols[?(@.name == 'jQuery.sap.history')]"
+    },
+    "correctcomboboxbasedestroyitems": {
+      "comment":
+        "Makes returntype for comboboxbase from combobox to comboboxbase",
+      "script": "val.returnValue.type = 'sap.m.ComboBoxBase';",
+      "jsonpath":
+        "$.symbols[?(@.name == 'sap.m.ComboBoxBase')].methods[?(@$.name == 'destroyItems')]"
     }
   },
   "postProcessing": {
@@ -236,6 +251,18 @@
       {
         "searchString": "public setDatetime(dateTime: {}): this;",
         "replacement": ""
+      },
+      {
+        "searchString":
+          "public setAuthorPicture(authorPicture: string, suppressInvalidation: boolean): this;",
+        "replacement":
+          "public setAuthorPicture(authorPicture: string, suppressInvalidation?: boolean): this;"
+      },
+      {
+        "searchString":
+          "public setPriority(priority: string, suppressInvalidation: boolean): this;",
+        "replacement":
+          "public setPriority(priority: string, suppressInvalidation?: boolean): this;"
       }
     ],
     "classes/sap/m/selectionDetails": [
@@ -244,49 +271,13 @@
         "replacement": "attachSelectionHandler(): any;"
       }
     ],
-    "classes/sap/ui/base/ManagedObject": [
-      {
-        "searchString": "public getModel(sName?: string | any): Model;",
-        "replacement": "public getModel<T>(sName?: string): Model<T>;"
-      },
-      {
-        "searchString": "public setModel(oModel: Model, sName?: string): this;",
-        "replacement":
-          "public setModel<T>(oModel: Model<T>, sName?: string): this;"
-      }
-    ],
-    "classes/sap/ui/base/EventProvider": [
-      {
-        "searchString": "public static getMetadata(): Metadata;",
-        "replacement": "public static getMetadata(): Metadata | any;"
-      }
-    ],
-    "classes/sap/ui/core/Element": [
-      {
-        "searchString":
-          "public static create(<code>vData < /code>: ManagedObject|{}, oKeyInfo: {}, oScope: {}): void;",
-        "replacement":
-          "public static create(vData: ManagedObject|{}, oKeyInfo: {}, oScope: {}): void;"
-      }
-    ],
-    "classes/sap/ui/model/Binding": [
-      {
-        "searchString":
-          "public constructor(oModel: Model, sPath: string, oContext: Context, mParameters: {});",
-        "replacement":
-          "public constructor(oModel: Model<T>, sPath: string, oContext: Context, mParameters: {});"
-      }
-    ],
-    "classes/sap/ui/core/Core": [
-      {
-        "searchString": "public getModel(sName: string | any): Model;",
-        "replacement":
-          "public getModel<T>(sName: sap.ui.model.ModelName): Model<T>;"
-      }
-    ],
     "classes/sap/ui/model/Model": [
       {
-        "searchString": "(\\W)Model([^\\w\\/\\.'`])",
+        "searchString": "export class Model extends MessageProcessor {",
+        "replacement": "export class Model<T = any> extends MessageProcessor {"
+      },
+      {
+        "searchString": "(\\W)Model([^\\w\\/\\.'`<])",
         "replacement": "$1Model<T>$2",
         "isRegex": true,
         "regexFlags": "g"
@@ -312,7 +303,12 @@
     ],
     "classes/sap/ui/base/Event": [
       {
-        "searchString": "(\\W)Event([^\\w\\/\\.'`])",
+        "searchString": "export class Event extends Object {",
+        "replacement":
+          "export class Event<Tsource = any, Tparameters = any> extends Object {"
+      },
+      {
+        "searchString": "(\\W)Event([^\\w\\/\\.'`<])",
         "replacement": "$1Event<Tsource, Tparameters>$2",
         "isRegex": true,
         "regexFlags": "g"
@@ -349,123 +345,12 @@
           "public setAggregation(sAggregationName: string, oObject: {}, bSuppressInvalidate: boolean | undefined): this;"
       }
     ],
-    "interfaces/sap/ui/core/mvc/View": [
-      {
-        "searchString": "static (?!extend|getMetadata)",
-        "replacement": "",
-        "isRegex": true,
-        "regexFlags": "g"
-      }
-    ],
-    "interfaces/sap/ui/core/mvc/Preprocessor": [
-      {
-        "searchString": "static (?!extend|getMetadata)",
-        "replacement": "",
-        "isRegex": true,
-        "regexFlags": "g"
-      }
-    ],
-    "interfaces/sap/ui/core/util/XMLPreprocessor": [
-      {
-        "searchString": "static (?!extend|getMetadata)",
-        "replacement": "",
-        "isRegex": true,
-        "regexFlags": "g"
-      },
-      {
-        "searchString": "getModel(iPart: number): Model;",
-        "replacement": "getModel(iPart: number): {};"
-      }
-    ],
-    "interfaces/sap/ui/core/util/XMLPreprocessor.IContext": [
-      {
-        "searchString": "static (?!extend|getMetadata)",
-        "replacement": "",
-        "isRegex": true,
-        "regexFlags": "g"
-      },
-      {
-        "searchString": "getModel(iPart: number): Model;",
-        "replacement": "getModel(iPart: number): {};"
-      }
-    ],
-    "interfaces/sap/ui/core/library.IFormContent": [
-      {
-        "searchString": "static (?!extend|getMetadata)",
-        "replacement": "",
-        "isRegex": true,
-        "regexFlags": "g"
-      }
-    ],
-    "interfaces/sap/ui/core/unified/libraray": [
-      {
-        "searchString": "static (?!extend|getMetadata)",
-        "replacement": "",
-        "isRegex": true,
-        "regexFlags": "g"
-      }
-    ],
     "interfaces/sap/ui/core/library.IProcessableBlobs": [
       {
         "searchString": "static (?!extend|getMetadata)",
         "replacement": "",
         "isRegex": true,
         "regexFlags": "g"
-      }
-    ],
-    "classes/sap/m/Router": [
-      {
-        "searchString": "export class Router extends Router {",
-        "replacement": "export class Router extends CoreRouter {"
-      }
-    ],
-    "classes/sap/m/Targets": [
-      {
-        "searchString": "export class Targets extends Targets {",
-        "replacement": "export class Targets extends CoreTargets {"
-      }
-    ],
-    "classes/sap/m/Image": [
-      {
-        "searchString": "import { LightBox } from 'sap/m/LightBox';",
-        "replacement": ""
-      },
-      {
-        "searchString": "public getDetailBox(): LightBox;",
-        "replacement": "public getDetailBox(): {};"
-      },
-      {
-        "searchString": "public setDetailBox(oLightBox: LightBox | any): {};",
-        "replacement": "public setDetailBox(oLightBox: any): {};"
-      }
-    ],
-    "classes/sap/m/NotificationListBase": [
-      {
-        "searchString":
-          "public getAggregation(aggregationName: string, defaultObjectToBeCreated: {}): any[] | _NotificationListBase | any;",
-        "replacement":
-          "public getAggregation(aggregationName: string, defaultObjectToBeCreated: {}): any[] | any;"
-      },
-      {
-        "searchString":
-          "import { NotificationListBase as _NotificationListBase } from '/NotificationListBase';",
-        "replacement": ""
-      }
-    ],
-    "classes/sap/ui/app/Application": [
-      {
-        "searchString": "public static getMetadata(): Metadata;",
-        "replacement": "public static getMetadata(): ComponentMetadata;"
-      },
-      {
-        "searchString": "import { Metadata } from 'sap/ui/base/Metadata';",
-        "replacement":
-          "import { ComponentMetadata } from 'sap/ui/core/ComponentMetadata';"
-      },
-      {
-        "searchString": "public setConfig(vConfig: string | {} | Model): any;",
-        "replacement":
-          "public setConfig<T>(vConfig: string | {} | Model<T>): any;"
       }
     ],
     "classes/jquery.sap.events": [
@@ -478,7 +363,7 @@
         "replacement": "export class Event {"
       }
     ],
-    "classes/jquery.sap.global": [
+    "classes/jquery.sap.global.Version": [
       {
         "searchString": "declare namespace jquery.sap.global {",
         "replacement": "declare namespace jQuery.sap {"
@@ -486,6 +371,16 @@
       {
         "searchString": "export class jQuery.sap.Version {",
         "replacement": "export class Version {"
+      }
+    ],
+    "classes/jquery.sap.global": [
+      {
+        "searchString": "declare namespace jquery.sap {",
+        "replacement": "declare namespace jQuery.sap.log {"
+      },
+      {
+        "searchString": "export class jQuery.sap.log.Logger {",
+        "replacement": "export class Logger {"
       }
     ],
     "classes/sap/ui/core/routing/Target": [
@@ -498,6 +393,44 @@
           "public constructor(oOptions: {}, oViews: Views, oParent: this);",
         "replacement":
           "public constructor(oOptions: {}, oViews: Views, oParent: Target);"
+      }
+    ],
+    "classes/sap/ui/commons/DropdownBox": [{
+    "searchString": "protected onAfterRendering(oEvent: jQuery.Event): any;",
+    "replacement": "protected onAfterRendering(oEvent?: jQuery.Event): any;"
+    }],
+    "classes/sap/m/MultiComboBox": [
+      {
+      "searchString": "public destroyItems(): ComboBox;",
+      "replacement": ""
+      }
+    ],
+    "classes/sap/ui/model/CompositeBinding": [
+      {
+      "searchString": "declare module 'sap/ui/model/CompositeBinding' {",
+      "replacement": "declare module 'sap/ui/model/CompositeBinding' {\nimport { Event } from 'sap/ui/base/Event';\n"
+      },
+      {
+        "searchString": "declare module 'sap/ui/model/CompositeBinding' {",
+        "replacement": "declare module 'sap/ui/model/CompositeBinding' {\nimport { DataState } from 'sap/ui/model/DataState';\n"
+        }
+    ],
+    "classes/sap/ui/model/analytics/AnalyticalBinding": [
+      {
+        "searchString": "hasChildren(oContext: Context, mParameters: any)",
+        "replacement": "hasChildren(oContext: Context, mParameters?: any)"
+      }
+    ],
+    "classes/sap/ui/model/odata/ODataMessageParser": [
+      {
+        "searchString": "public parse(oResponse: {}, oRequest: {}, mGetEntities: any, mChangeEntities: any): any;",
+        "replacement": "public parse(oResponse: {}, oRequest: {}, mGetEntities: any, mChangeEntities: any): any;\npublic parse(): any;\n"
+      }
+    ],
+    "interfaces/sap/ui/core/util/XMLPreprocessor.IContext": [
+      {
+        "searchString": "getModel(iPart: number): Model;",
+        "replacement": "getModel(iPart: number): any;"
       }
     ]
   }

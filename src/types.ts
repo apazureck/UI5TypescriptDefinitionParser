@@ -87,3 +87,10 @@ export interface IImport {
   name: string;
   alias?: string;
 }
+
+export enum OverloadFlags {
+  None = 0,
+  Parameters = 1 << 0,
+  ReturnType = 1 << 1,
+  Visibility = 1 << 2
+}

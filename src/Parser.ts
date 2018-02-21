@@ -575,7 +575,7 @@ export class Parser implements ILogDecorator {
   private ParseClass(c: ParsedClass): void {
     let filepath = path.join(this.outfolder, "classes", c.module + ".d.ts");
     if (fs.existsSync(filepath)) {
-      path.join(this.outfolder, "classes", c.module + "." + c.basename + ".d.ts");}
+      filepath = path.join(this.outfolder, "classes", c.module + "." + c.basename + ".d.ts");}
     this.log("Creating class " + filepath);
     try {
       MakeDirRecursiveSync(path.dirname(filepath));

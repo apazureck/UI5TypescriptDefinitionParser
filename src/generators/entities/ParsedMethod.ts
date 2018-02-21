@@ -1,4 +1,4 @@
-import { IConfig, ILogDecorator } from "../../types";
+import { IConfig, ILogDecorator, OverloadFlags } from "../../types";
 import {
   IMethod,
   IParameter,
@@ -43,8 +43,7 @@ export class ParsedMethod extends GeneratorBase {
     forcteStatic?: boolean
   ) {
     super(config);
-    if(forcteStatic)
-      this.wrappedMethod.static = true;
+    if (forcteStatic) this.wrappedMethod.static = true;
     this.onAddImport = onAddImport;
     this.generateMethodParts(suppressReturnValue);
   }
@@ -143,7 +142,8 @@ export class ParsedMethod extends GeneratorBase {
               decorated,
               config,
               owner,
-              suppressReturnValue
+              suppressReturnValue,
+              context ? true : false
             )
           );
         }
@@ -372,21 +372,25 @@ export class ParsedMethod extends GeneratorBase {
     }
   }
 
-  public IsOverload(method: ParsedMethod) {
-    if (this.name !== method.name) return false;
+  public IsOverload(method: ParsedMethod): OverloadFlags {
+    let overloadflag: OverloadFlags = OverloadFlags.None;
+    if (this.name !== method.name) return overloadflag;
+
+    if (this.visibility !== method.visibility)
+      overloadflag |= OverloadFlags.Visibility;
 
     if (this.parameters.length === method.parameters.length) {
       for (let i = 0; i < this.parameters.length; i++) {
         const thisParam = this.parameters[i];
         if (thisParam.type !== method.parameters[i].type) {
-          return true;
+          overloadflag |= OverloadFlags.Parameters;
+          break;
         }
       }
     }
 
     if (method.returntype.type === "this") {
       this.returntype.type = "this";
-      return false;
     }
 
     // Check if this method contains all types of basetype.
@@ -399,9 +403,9 @@ export class ParsedMethod extends GeneratorBase {
         thisret.splice(found, 1);
       }
     }
-    if (thisret.length > 0) return true;
+    if (thisret.length > 0) overloadflag |= OverloadFlags.ReturnType;
 
-    return false;
+    return overloadflag;
   }
 
   /**
@@ -412,15 +416,23 @@ export class ParsedMethod extends GeneratorBase {
    * @memberof ParsedMethod
    */
   overload(basemethod: ParsedMethod): ParsedMethod {
-    this.visibility = basemethod.visibility;
-    this.importBaseMethodParameters(basemethod.parameters);
-    // this.wrappedMethod.description +=
-    //   "\n\n_Overloads " +
-    //   basemethod.name +
-    //   " of class " +
-    //   basemethod.owner.basename +
-    //   "_";
-    return this.mergeBaseType(basemethod);
+    const ot = this.IsOverload(basemethod);
+
+    if (ot & OverloadFlags.Visibility) {
+      this.visibility = basemethod.visibility;
+    }
+
+    if (ot & OverloadFlags.Parameters | OverloadFlags.ReturnType) {
+      this.importBaseMethodParameters(basemethod.parameters);
+      // this.wrappedMethod.description +=
+      //   "\n\n_Overloads " +
+      //   basemethod.name +
+      //   " of class " +
+      //   basemethod.owner.basename +
+      //   "_";
+      return this.mergeBaseType(basemethod);
+    }
+    return undefined;
   }
 
   private importBaseMethodParameters(parameters: ParsedParameter[]) {

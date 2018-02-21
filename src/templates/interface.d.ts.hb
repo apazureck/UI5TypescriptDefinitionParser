@@ -26,7 +26,7 @@ export interface {{basename}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}
 /**
     {{documentThis this.description}}
 */
-{{#if this.isStatic}}static {{/if}}{{this.name}}(
+{{this.name}}(
     {{~#if this.parameters.length~}}
     {{~#each this.parameters~}}
         {{#unless @first}} {{/unless}}{{this.name}}: {{this.type}}{{#unless @last}},{{/unless}}

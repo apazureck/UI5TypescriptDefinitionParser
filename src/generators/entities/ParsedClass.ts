@@ -2,7 +2,7 @@ import * as events from "events";
 import * as Handlebars from "handlebars";
 import * as hbex from "../../handlebarsExtensions";
 import { GeneratorBase } from "../GeneratorBase";
-import { IConfig, IImport, ILogDecorator } from "../../types";
+import { IConfig, IImport, ILogDecorator, OverloadFlags } from "../../types";
 import { IParameter, IProperty, ISymbol } from "../../UI5DocumentationTypes";
 import { Log, LogLevel } from "../../log";
 import { ParsedEvent } from "./ParsedEvent";
@@ -244,6 +244,23 @@ export class ParsedClass extends GeneratorBase implements IClass {
         );
       } else {
         const newmodulartype = this.config.modularTypes[typeName];
+        // Check if there is already a type imported with the same name
+        for (const impkey in this.imports) {
+          const imp = this.imports[impkey];
+          if (imp) {
+            if (imp.basename === newmodulartype.basename) {
+              this.imports[typeName] = {
+                basename: newmodulartype.basename,
+                name: newmodulartype.name,
+                module: newmodulartype.module,
+                alias: newmodulartype.name.replace(/\./g, "_")
+              };
+              return (
+                this.imports[typeName].alias || this.imports[typeName].basename
+              );
+            }
+          }
+        }
         this.imports[typeName] = {
           basename: newmodulartype.basename,
           name: newmodulartype.name,
@@ -253,7 +270,7 @@ export class ParsedClass extends GeneratorBase implements IClass {
               ? newmodulartype.name.replace(/\./g, "_")
               : undefined
         };
-        return newmodulartype.basename;
+        return this.imports[typeName].alias || this.imports[typeName].basename;
       }
     } catch (error) {
       logger.Error(
@@ -312,6 +329,7 @@ function getOverloadFromBaseClass(
   if (!baseclass) {
     return;
   }
+  getOverloadFromBaseClass(childclass, baseclass.baseclass);
   for (const basemethod of baseclass.methods) {
     const possibleOverloads = childclass.methods.filter(
       (value, index, array) => value.name === basemethod.name
@@ -319,7 +337,9 @@ function getOverloadFromBaseClass(
     if (possibleOverloads.length > 0) {
       const match = possibleOverloads.find(x => !x.IsOverload(basemethod));
       if (!match) {
-        const overload = possibleOverloads.find(x => x.IsOverload(basemethod));
+        const overload = possibleOverloads.find(
+          x => x.IsOverload(basemethod) !== OverloadFlags.None
+        );
         const original = overload.overload(basemethod);
         if (original) {
           childclass.pushMethodFromBaseClass(original);
@@ -328,5 +348,4 @@ function getOverloadFromBaseClass(
       }
     }
   }
-  getOverloadFromBaseClass(childclass, baseclass.baseclass);
 }
