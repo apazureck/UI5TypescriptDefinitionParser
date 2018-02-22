@@ -1,7 +1,6 @@
 import { IApi, ISymbol } from "./UI5DocumentationTypes";
 import { ParsedClass } from "./generators/entities/ParsedClass";
 import { ParsedNamespace } from "./generators/entities/ParsedNamespace";
-import { EnumGenerator } from "./generators/EnumGenerator";
 import { IConfig, ILogDecorator, IPostProcessor } from "./types";
 import * as fs from "fs";
 import * as ncp from "ncp";

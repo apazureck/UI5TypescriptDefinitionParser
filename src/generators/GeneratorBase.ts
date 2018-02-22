@@ -79,15 +79,6 @@ export abstract class GeneratorBase implements ILogDecorator {
         continue;
       }
 
-      if (this.config.enums.hasOwnProperty(type)) {
-        ret.push(isArray ? type + "[]" : type);
-        if(complexOut) {
-          curtype.restype = type;
-          complexOut.push(curtype as any);
-        }
-        continue;
-      }
-
       if (this.config.substitutedTypes.hasOwnProperty(type)) {
         ret.push(isArray ? type + "[]" : type);
         if(complexOut) {

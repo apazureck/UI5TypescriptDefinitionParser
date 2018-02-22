@@ -23,10 +23,6 @@
         "description": "A key-value map, which will be checked againt the types coming from the api reference json. If matched, they will be replaced.",
       "type": "object"
     },
-    "enums": {
-        "type": "object",
-        "description": "Used to replace namespaces with enums, but not used anymore. Do not delete this property, even though empty."
-    },
     "substitutedTypes": {
         "type": "object",
         "description": "Key-value pairs, which manually declare built-in-types. The value will be put in its own d.ts file."
@@ -79,7 +75,29 @@
                 "additionalProperties": false
             }
         }
+    },
+    "preProcessing": {
+        "type": "object",
+        "description": "Directives to preprocess the api.json files",
+        "additionalProperties": {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "type": "string",
+                    "description": "A comment describes what this replacement does"
+                },
+                "script": {
+                    "type": "string",
+                    "description": "The script for manipulating the found js object. val is the given value, which is returned at the end. See log for debug information. Set log level to debug."
+                },
+                "jsonpath": {
+                    "type": "string",
+                    "description": "The json path using the npm jsonpath package"
+                }
+            },
+            "required": ["script", "jsonpath"]
+        }
     }
   },
-  "required": ["connection", "typeMap", "enums"]
+  "required": ["connection", "typeMap"]
 }
