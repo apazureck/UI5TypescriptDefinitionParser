@@ -2,6 +2,13 @@ import { ISymbol } from "./UI5DocumentationTypes";
 import { LogLevel } from "./log";
 
 export interface IConfig {
+  templates: {
+    interface: string;
+    ambientClass: string,
+    modularClass: string,
+    enum: string;
+  }
+  outdir: string,
   preProcessing: {
     [jpath: string]: {
       jsonpath: string;
@@ -22,17 +29,6 @@ export interface IConfig {
    * @memberof IConfig
    */
   typeMap: {
-    [key: string]: string;
-  };
-  /**
-   * Found Enums in the namespaces
-   *
-   * @type {{
-   *         [key: string]: string;
-   *     }}
-   * @memberof IConfig
-   */
-  enums: {
     [key: string]: string;
   };
 

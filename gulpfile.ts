@@ -48,7 +48,7 @@ export class Gulpfile {
   @Task()
   runTest() {
     let p = new Parser("./config.json");
-    return p.GenerateDeclarations("declarations");
+    return p.GenerateDeclarations();
   }
 
   @Task()

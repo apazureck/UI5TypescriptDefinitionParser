@@ -1,5 +1,11 @@
 {
   "$schema": "./ui5parserConfig.schema.json",
+  "templates": {
+    "ambientClass": "templates/classAmbient.d.ts.hb",
+    "modularClass": "templates/classModule.d.ts.hb",
+    "interface": "templates/interface.d.ts.hb",
+    "enum": "templates/enums.d.ts.hb"
+  },
   "connection": {
     "root": "https://openui5.hana.ondemand.com/test-resources",
     "endpoints": [
@@ -17,6 +23,7 @@
       "sap/uxap/designtime/api.json"
     ]
   },
+  "outdir": "declarations",
   "typeMap": {
     "*": "any",
     "any[]": "any[]",
@@ -120,9 +127,6 @@
       "sap.ui.layout.form.SimpleFormLayout",
     "sap.ui.commons.TitleLevel": "sap.ui.core.TitleLevel"
   },
-  "enums": {
-    "sap.ui.core.Popup.Dock": {}
-  },
   "substitutedTypes": {
     "sap.ui.core.CSSSize":
       "declare namespace sap.ui.core {\nexport type CSSSize = string;\n}",
@@ -205,6 +209,11 @@
       "script": "val.returnValue.type = 'sap.m.ComboBoxBase';",
       "jsonpath":
         "$.symbols[?(@.name == 'sap.m.ComboBoxBase')].methods[?(@$.name == 'destroyItems')]"
+    },
+    "correct sap.ui.core.Popup.Dock type": {
+      "comment": "Makes correct enum of namespace",
+      "script": "val.kind = 'enum';",
+      "jsonpath": "$.symbols[?(@.name == 'sap.ui.core.Popup.Dock')]"
     }
   },
   "postProcessing": {
@@ -395,25 +404,30 @@
           "public constructor(oOptions: {}, oViews: Views, oParent: Target);"
       }
     ],
-    "classes/sap/ui/commons/DropdownBox": [{
-    "searchString": "protected onAfterRendering(oEvent: jQuery.Event): any;",
-    "replacement": "protected onAfterRendering(oEvent?: jQuery.Event): any;"
-    }],
+    "classes/sap/ui/commons/DropdownBox": [
+      {
+        "searchString":
+          "protected onAfterRendering(oEvent: jQuery.Event): any;",
+        "replacement": "protected onAfterRendering(oEvent?: jQuery.Event): any;"
+      }
+    ],
     "classes/sap/m/MultiComboBox": [
       {
-      "searchString": "public destroyItems(): ComboBox;",
-      "replacement": ""
+        "searchString": "public destroyItems(): ComboBox;",
+        "replacement": ""
       }
     ],
     "classes/sap/ui/model/CompositeBinding": [
       {
-      "searchString": "declare module 'sap/ui/model/CompositeBinding' {",
-      "replacement": "declare module 'sap/ui/model/CompositeBinding' {\nimport { Event } from 'sap/ui/base/Event';\n"
+        "searchString": "declare module 'sap/ui/model/CompositeBinding' {",
+        "replacement":
+          "declare module 'sap/ui/model/CompositeBinding' {\nimport { Event } from 'sap/ui/base/Event';\n"
       },
       {
         "searchString": "declare module 'sap/ui/model/CompositeBinding' {",
-        "replacement": "declare module 'sap/ui/model/CompositeBinding' {\nimport { DataState } from 'sap/ui/model/DataState';\n"
-        }
+        "replacement":
+          "declare module 'sap/ui/model/CompositeBinding' {\nimport { DataState } from 'sap/ui/model/DataState';\n"
+      }
     ],
     "classes/sap/ui/model/analytics/AnalyticalBinding": [
       {
@@ -423,8 +437,10 @@
     ],
     "classes/sap/ui/model/odata/ODataMessageParser": [
       {
-        "searchString": "public parse(oResponse: {}, oRequest: {}, mGetEntities: any, mChangeEntities: any): any;",
-        "replacement": "public parse(oResponse: {}, oRequest: {}, mGetEntities: any, mChangeEntities: any): any;\npublic parse(): any;\n"
+        "searchString":
+          "public parse(oResponse: {}, oRequest: {}, mGetEntities: any, mChangeEntities: any): any;",
+        "replacement":
+          "public parse(oResponse: {}, oRequest: {}, mGetEntities: any, mChangeEntities: any): any;\npublic parse(): any;\n"
       }
     ],
     "interfaces/sap/ui/core/util/XMLPreprocessor.IContext": [

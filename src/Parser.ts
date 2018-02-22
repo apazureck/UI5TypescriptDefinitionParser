@@ -48,45 +48,48 @@ export class Parser implements ILogDecorator {
   private currentApi: IApi;
   private logger: Log;
 
-  private interfaceTemplate = Handlebars.compile(
-    fs.readFileSync("templates/interface.d.ts.hb", "utf8"),
-    {
-      noEscape: true
-    }
-  );
+  private interfaceTemplate: HandlebarsTemplateDelegate;
 
-  enumTemplate: HandlebarsTemplateDelegate<any> = Handlebars.compile(
-    fs.readFileSync("templates/enums.d.ts.hb", "utf-8"),
-    {
-      noEscape: true
-    }
-  );
+  private enumTemplate: HandlebarsTemplateDelegate;
 
   private allClasses: ParsedClass[] = [];
   private allNamespaces: ParsedNamespace[] = [];
 
-  modularClassTemplate = Handlebars.compile(
-    fs.readFileSync("templates/classModule.d.ts.hb", "utf8"),
-    {
-      noEscape: true
-    }
-  );
-  ambientClassTemplate = Handlebars.compile(
-    fs.readFileSync("templates/classAmbient.d.ts.hb", "utf8"),
-    {
-      noEscape: true
-    }
-  );
+  private modularClassTemplate: HandlebarsTemplateDelegate;
+  private ambientClassTemplate: HandlebarsTemplateDelegate;
 
   constructor(private configPath: string) {
     this.config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    // overwrite setting
     this.logger = new Log("Parser", LogLevel.getValue(this.config.logLevel));
     this.logger.Trace("Started Logger");
+    this.ambientClassTemplate = Handlebars.compile(
+      fs.readFileSync(this.config.templates.ambientClass, "utf8"),
+      {
+        noEscape: true
+      }
+    );
+    this.enumTemplate = Handlebars.compile(
+      fs.readFileSync(this.config.templates.enum, "utf-8"),
+      {
+        noEscape: true
+      }
+    );
+    this.modularClassTemplate = Handlebars.compile(
+      fs.readFileSync(this.config.templates.modularClass, "utf8"),
+      {
+        noEscape: true
+      }
+    );
+    this.interfaceTemplate = Handlebars.compile(
+      fs.readFileSync(this.config.templates.interface, "utf8"),
+      {
+        noEscape: true
+      }
+    );
   }
-  async GenerateDeclarations(outfolder: string): Promise<void> {
+  async GenerateDeclarations(outfolder?: string): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
-      this.outfolder = outfolder;
+      this.outfolder = outfolder || this.config.outdir;
       let info = { generatedClasses: 0 };
       // Create rest client
       const rc = new RestClient("Agent", this.config.connection.root);
@@ -303,8 +306,7 @@ export class Parser implements ILogDecorator {
         try {
           this.logger.Debug("Caught Object:");
           this.logger.Debug(JSON.stringify(val));
-        } catch(error) {
-        }
+        } catch (error) {}
         return func(val);
       };
       for (const endpointname in apis) {
@@ -316,8 +318,10 @@ export class Parser implements ILogDecorator {
           }
           bar.tick({ api: endpointname });
         } catch (error) {
-          if(error.message.startsWith("Lexical error")) {
-            this.logger.Error("Error in used jsonpath. See https://www.npmjs.com/package/jsonpath for how to use jsonpath.");
+          if (error.message.startsWith("Lexical error")) {
+            this.logger.Error(
+              "Error in used jsonpath. See https://www.npmjs.com/package/jsonpath for how to use jsonpath."
+            );
             this.logger.Error("Error Message: " + error.message);
             continue;
           }
@@ -406,10 +410,7 @@ export class Parser implements ILogDecorator {
     type: ISymbol,
     info: { generatedEnumCount: number }
   ): boolean {
-    if (
-      type.kind === "enum" ||
-      (type.kind === "namespace" && this.config.enums[type.name] !== undefined)
-    ) {
+    if (type.kind === "enum") {
       const filepath = path.join(this.outfolder, "enums", type.name + ".d.ts");
       if (fs.existsSync(filepath)) {
         this.logger.Error("File already exists");
@@ -575,12 +576,17 @@ export class Parser implements ILogDecorator {
   private ParseClass(c: ParsedClass): void {
     let filepath = path.join(this.outfolder, "classes", c.module + ".d.ts");
     if (fs.existsSync(filepath)) {
-      filepath = path.join(this.outfolder, "classes", c.module + "." + c.basename + ".d.ts");}
+      filepath = path.join(
+        this.outfolder,
+        "classes",
+        c.module + "." + c.basename + ".d.ts"
+      );
+    }
     this.log("Creating class " + filepath);
     try {
       MakeDirRecursiveSync(path.dirname(filepath));
       try {
-          fs.writeFileSync(filepath, c.toString(), { encoding: "utf-8" });
+        fs.writeFileSync(filepath, c.toString(), { encoding: "utf-8" });
       } catch (error) {
         console.error(
           "Error writing file " + filepath + ": " + error.toString()
