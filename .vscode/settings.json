@@ -1,3 +1,14 @@
 // Place your settings in this file to overwrite default and user settings.
 {
+    "tslint.enable": true,
+    "tslint.alwaysShowRuleFailuresAsWarnings": true,
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/bower_components": true,
+        "**/*.js": true,
+        "**/out": true
+    },
+    "files.associations": {
+        "*.hb": "handlebars"
+    }
 }

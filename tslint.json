@@ -1,0 +1,40 @@
+{
+	"rules": {
+		"no-unused-expression": true,
+		"no-duplicate-variable": true,
+		"no-unused-variable": true,
+		"curly": true,
+		"class-name": true,
+		"semicolon": [true, "always"],
+		"triple-equals": true,
+		"array-type": [
+			"array"
+		],
+		"completed-docs": [true],
+		"forin": true,
+		"jsdoc-format": true,
+		"max-classes-per-file": [
+			true,
+			1
+		],
+		"no-internal-module": true,
+		"no-reference": true,
+		"no-require-imports": true,
+		"prefer-for-of": true,
+		"no-for-in-array": true,
+		"adjacent-overload-signatures": false,
+		"align": [
+			true,
+			"arguments",
+			"parameters",
+			"statements"
+		],
+		"quotemark": [
+			"single"
+		],
+		"interface-name": [
+			true,
+			"always-prefix"
+		]
+	}
+}

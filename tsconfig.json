@@ -1,17 +1,21 @@
 {
     "include": [
-        "src/**/*",
+        "src",
         "gulpfile.ts"
     ],
     "compilerOptions": {
-        "target": "es2017",
+        "target": "es2015",
         "module": "commonjs",
         "sourceMap": true,
+        "moduleResolution": "node",
         "outDir": "out",
-        "experimentalDecorators": true
+        "experimentalDecorators": true,
+        "watch": true
     },
+    "types": ["node"],
     "exclude": [
-        "typings",
-        "node_modules"
+        "out/**/*",
+        "test/**/*",
+        "src/replacements/**/*"
     ]
 }

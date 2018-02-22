@@ -1,0 +1,103 @@
+{
+  "type": "object",
+  "properties": {
+    "connection": {
+        "description": "Connection settings",
+      "type": "object",
+      "properties": {
+        "root": {
+          "description": "The connection to the ui5 resources folder",
+          "type": "string"
+        },
+        "endpoints": {
+          "description":
+            "endpoints of the api. List the json files here which should be parsed.",
+          "type": "array",
+          "items": {
+            "allOf": [{ "type": "string" }]
+          }
+        }
+      }
+    },
+    "typeMap": {
+        "description": "A key-value map, which will be checked againt the types coming from the api reference json. If matched, they will be replaced.",
+      "type": "object"
+    },
+    "substitutedTypes": {
+        "type": "object",
+        "description": "Key-value pairs, which manually declare built-in-types. The value will be put in its own d.ts file."
+    },
+    "cleanParamNames": {
+        "type": "object",
+        "description": "Replaces any method and event parameter name listed here.",
+        "additionalProperties": {
+            "description": "Key Value pairs to replace bad parameter names in methods and functions",
+            "type": "string"
+        }
+    },
+    "cacheApis": {
+        "type": "boolean",
+        "description": "Set this parameter to true to cache the api.json files locally. Thus, changes in the ui5 documentation will not be reflected anymore in the resulting declarations."
+    },
+    "logLevel": {
+        "type": "string",
+        "description": "Sets the loglevel of the parser.",
+        "enum": [
+            "Trace", "Debug", "Info", "Warning", "Error", "Fatal", "None"
+        ]
+    },
+    "postProcessing": {
+        "type": "object",
+        "description": "Post Processing regular expression replacements, which will be applied to the outcoming modules",
+        "additionalProperties": {
+            "type": "array",
+            "items": {
+                "properties": {
+                    "searchString": {
+                        "description": "String to search for. Can either be a string or an regular expression. Set isRegex to true to use as regular expression.",
+                        "type": "string"
+                    },
+                    "replacement": {
+                        "description": "The value to replace. If Regular Expression is true the groups can be accessed with $1, $2, etc. $0 is the whole string (as in js string replace)",
+                        "type": "string"
+                    },
+                    "isRegex": {
+                        "description": "If this is set to true the searchString property is interpreted as regular expression",
+                        "type": "boolean"
+                    },
+                    "regexFlags": {
+                        "description": "Regex flags are used, if isRegex is set to true.",
+                        "type": "string",
+                        "pattern": "^[gmiyu]+$"
+                    }  
+                },
+                "required": ["searchString", "replacement"],
+                "additionalProperties": false
+            }
+        }
+    },
+    "preProcessing": {
+        "type": "object",
+        "description": "Directives to preprocess the api.json files",
+        "additionalProperties": {
+            "type": "object",
+            "properties": {
+                "comment": {
+                    "type": "string",
+                    "description": "A comment describes what this replacement does"
+                },
+                "script": {
+                    "type": "string",
+                    "description": "The script for manipulating the found js object. val is the given value, which is returned at the end. See log for debug information. Set log level to debug."
+                },
+                "jsonpath": {
+                    "type": "string",
+                    "description": "The json path using the npm jsonpath package"
+                }
+            },
+            "required": ["script", "jsonpath"]
+        }
+    }
+  },
+  "required": ["connection", "typeMap"]
+}

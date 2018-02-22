@@ -1,35 +1,61 @@
 import { Gulpclass, Task, SequenceTask } from "gulpclass";
-import * as gulp from 'gulp';
-import * as del from 'del';
+import * as gulp from "gulp";
+import * as del from "gulp-clean";
+import { Parser } from "./src/Parser";
+import * as fs from "fs";
+import * as debug from "gulp-debug";
+import * as plumber from "gulp-plumber"
 
 @Gulpclass()
 export class Gulpfile {
 
-    @Task()
-    clean(cb: Function) {
-        return del(["out/**/*"], cb);
-    }
+  @Task()
+  copySourceFiles() {
+    return gulp.src(["../src/**.json"]).pipe(gulp.dest(""));
+  }
 
-    @Task()
-    copyFiles() {
-        return gulp.src(["./README.md"])
-            .pipe(gulp.dest("./dist"));
-    }
+  @Task()
+  copyHandlebarsTemplates() {
+    return gulp.src(["../src/templates/**.hb"]).pipe(gulp.dest("templates"));
+  }
 
-    @Task("copy-source-files") // you can specify custom task name if you need 
-    copySourceFiles() {
-        return gulp.src(["./src/**.js"])
-            .pipe(gulp.dest("./dist/src"));
-    }
+  @SequenceTask()
+  default() {
+    // because this task has "default" name it will be run as default gulp task
+    return [
+      "deleteDeclarations",
+      "copySourceFiles",
+      "copyHandlebarsTemplates",
+      "replaceFiles",
+      "runTest",
+      "copyDeclarationsToTestFolder"
+    ];
+  }
+  
+  @Task()
+  deleteDeclarations() {
+      return gulp.src(["declarations", "test/declarations"], { read: false})
+      .pipe(del());
+  }
 
-    @SequenceTask() // this special annotation using "run-sequence" module to run returned tasks in sequence 
-    build() {
-        return ["copyFiles", "copy-source-files"];
-    }
+  @Task()
+  copyDeclarationsToTestFolder() {
+    return gulp
+      .src("./declarations/**/*")
+      .pipe(gulp.dest("../test/declarations"));
+  }
 
-    @Task()
-    default() { // because this task has "default" name it will be run as default gulp task 
-        return ["build"];
-    }
+  @Task()
+  runTest() {
+    let p = new Parser("./config.json");
+    return p.GenerateDeclarations();
+  }
 
+  @Task()
+  replaceFiles() {
+    console.log("Copying replacement files");
+    return gulp
+      .src(["../src/replacements/**/*"])
+      .pipe(gulp.dest("replacements"));
+  }
 }

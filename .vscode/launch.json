@@ -18,6 +18,7 @@
             "env": {
                 
             },
+            "console": "integratedTerminal",
             "outFiles": [
                 "${workspaceRoot}/out/**/*.js"
             ]
