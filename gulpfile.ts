@@ -43,6 +43,7 @@ export class Gulpfile {
     return gulp
       .src("./declarations/**/*")
       .pipe(gulp.dest("../test/declarations"));
+      // .pipe(gulp.dest("../../ui5-typescript-example/typings/ui5"));
   }
 
   @Task()

@@ -3,8 +3,12 @@
   "templates": {
     "ambientClass": "templates/classAmbient.d.ts.hb",
     "modularClass": "templates/classModule.d.ts.hb",
-    "interface": "templates/interface.d.ts.hb",
-    "enum": "templates/enums.d.ts.hb"
+    "ambientInterface": "templates/ambientInterface.d.ts.hb",
+    "modularInterface": "templates/interfaceModule.d.ts.hb",
+    "ambientEnum": "templates/ambientEnum.d.ts.hb",
+    "modularEnum": "templates/enumModule.d.ts.hb",
+    "ambientNamespace": "templates/ambientNamespace.d.ts.hb",
+    "modularNamespace": "templates/namespaceModule.d.ts.hb"
   },
   "connection": {
     "root": "https://openui5.hana.ondemand.com/test-resources",
@@ -26,7 +30,6 @@
   "outdir": "declarations",
   "typeMap": {
     "*": "any",
-    "any[]": "any[]",
     "array": "any[]",
     "Array": "any[]",
     "array.&lt;array.&lt;string&gt;&gt;": "string[][]",
@@ -35,7 +38,7 @@
     "blob": "any",
     "Boolean": "boolean",
     "CalendarAppointment": "any",
-    "Control": "sap.ui.Core.Control",
+    "Control": "sap.ui.core.Control",
     "createDefaultContent": "any",
     "date": "any",
     "Date": "any",
@@ -44,21 +47,21 @@
     "domRef": "any",
     "DomRef": "any",
     "DOMRef": "any",
-    "DomRef[]": "any[]",
     "element": "any",
     "Element": "any",
-    "Element[]": "any[]",
     "EntityType": "any",
     "Error": "any",
     "event": "any",
     "float": "number",
-    "function": "(() => any)",
-    "function()": "(() => any)",
-    "(() &#x3D;& gt; any)": "(a: any, b: any) => boolean",
+    "function": { "replacement": "(() => any)", "return": true },
+    "function()": { "replacement": "(() => any)", "return": true },
+    "(() &#x3D;& gt; any)": {
+      "replacement": "(a: any, b: any) => boolean",
+      "return": true
+    },
     "Generator": "any",
     "HTMLElement": "any",
     "int": "number",
-    "int[]": "number[]",
     "integer": "number",
     "InvisibleControl": "sap.ui.core.Control",
     "jQuery": "any",
@@ -70,11 +73,9 @@
     "MenuButton": "any",
     "null": "any",
     "Number": "number",
-    "Number[]": "number[]",
-    "objec": "{}",
-    "object": "{}",
-    "Object": "{}",
-    "object[]": "{}[]",
+    "objec": "any",
+    "object": "any",
+    "Object": "any",
     "ObjectNumber": "number",
     "oWindow": "any",
     "Promise": "any",
@@ -82,7 +83,6 @@
     "sap.m.Control": "sap.ui.core.Control",
     "sap.m.DynamicSideContent": "sap.ui.layout.DynamicSideContent",
     "sap.m.P13nConditionOperation": "any",
-    "sap.m.P13nConditionOperation[]": "any[]",
     "sap.m.TabStripItem": "any",
     "sap.ui.base.ManagedObjectMetadata": "any",
     "sap.ui.base.ManageObject": "sap.ui.base.ManagedObject",
@@ -96,18 +96,14 @@
     "sap.ui.demokit.UI5EntityCueCardStyle": "any",
     "sap.ui.message.MessagePaser": "sap.ui.core.message.MessageParser",
     "sap.ui.message.MessageProcessor": "sap.ui.core.message.MessageProcessor",
-    "sap.ui.model.analytics.odata4analytics.ParametrizationRequest": "any",
-    "sap.ui.model.odata.Filter[]": "sap.ui.model.Filter[]",
     "sap.ui.model.odata.OdataListBinding":
       "sap.ui.model.odata.ODataListBinding",
     "sap.ui.model.odata.v4.lib._MetadataRequestor": "any",
     "sap.ui.suite.TaskCircleColor": "any",
     "sap.ui.test.qunit": "any",
     "ScrollEnablement": "sap.ui.core.delegate.ScrollEnablement",
-    "sting[]": "string[]",
+    "sting": "string",
     "String": "string",
-    "string[]": "string[]",
-    "String[]": "string[]",
     "TablePersoController": "any",
     "TablePersoDialog": "any",
     "Touch": "any",
@@ -115,12 +111,22 @@
     "true": "boolean",
     "undefined": "any",
     "Window": "any",
-    "{type:string,index:int}": "{type:string,index:number}",
-    "Object.<string,function()>": "{[eventName: string]: () => any}",
+    "{type:string,index:int}": {
+      "replacement": "{type:string,index:number}",
+      "return": true
+    },
+    "Object.<string,function()>": {
+      "replacement": "{[eventName: string]: () => any}",
+      "return": true
+    },
     "UriParameters": "jQuery.sap.util.UriParameters",
-    "[object Object]": "{}",
-    "Array.<[object Object]>": "{}[]",
-    "Object.<string,string>": "{[key: string]: string}",
+    "[object Object]": "any",
+    "[object Object][]": "any[]",
+    "Array.<[object Object]>": "any[]",
+    "Object.<string,string>": {
+      "replacement": "{[key: string]: string}",
+      "return": true
+    },
     "IBar": "sap.m.IBar",
     "IBarHTMLTag": "sap.m.IBarHTMLTag",
     "sap.ui.commons.form.SimpleFormLayout":
@@ -217,31 +223,12 @@
     }
   },
   "postProcessing": {
-    "namespaces/**/*": [
-      {
-        "searchString":
-          "sap\\.ui\\.core\\.(?:Control|Element|BusyIndicator|Component|mvc\\.Controller|mvc\\.View|mvc\\.Fragment|Fragment|Core|mvc\\.HTMLView|mvc\\.JSONView|mvc\\.JSView|tmpl\\.Template|mvc\\.TemplateView|mvc\\.XMLView)([^\\w])",
-        "replacement": "{}$1",
-        "isRegex": true,
-        "regexFlags": "g"
-      },
-      {
-        "isRegex": true,
-        "searchString": "sap\\.ui\\.base\\.(?:Metadata|Interface)([^\\w])",
-        "replacement": "{}$1",
-        "regexFlags": "g"
-      },
-      {
-        "isRegex": true,
-        "searchString": "sap\\.ui\\.model\\.(?:Context)([^\\w])",
-        "replacement": "{}$1",
-        "regexFlags": "g"
-      }
-    ],
     "namespaces/sap.ui.core.BusyIndicator": [
       {
-        "searchString": "declare namespace {} {",
-        "replacement": "declare namespace sap.ui.core.BusyIndicator {"
+        "searchString": ": BusyIndicator",
+        "replacement": ": any",
+        "isRegex": true,
+        "regexFlags": "g"
       }
     ],
     "classes/sap/m/BusyDialog": [
@@ -282,8 +269,9 @@
     ],
     "classes/sap/ui/model/Model": [
       {
-        "searchString": "export class Model extends MessageProcessor {",
-        "replacement": "export class Model<T = any> extends MessageProcessor {"
+        "searchString": "export default class Model extends MessageProcessor {",
+        "replacement":
+          "export default class Model<T = any> extends MessageProcessor {"
       },
       {
         "searchString": "(\\W)Model([^\\w\\/\\.'`<])",
@@ -312,9 +300,9 @@
     ],
     "classes/sap/ui/base/Event": [
       {
-        "searchString": "export class Event extends Object {",
+        "searchString": "export default class Event extends Object {",
         "replacement":
-          "export class Event<Tsource = any, Tparameters = any> extends Object {"
+          "export default class Event<Tsource = any, Tparameters = any> extends Object {"
       },
       {
         "searchString": "(\\W)Event([^\\w\\/\\.'`<])",
@@ -419,14 +407,14 @@
     ],
     "classes/sap/ui/model/CompositeBinding": [
       {
-        "searchString": "declare module 'sap/ui/model/CompositeBinding' {",
+        "searchString": "import Metadata from \"sap/ui/base/Metadata\";",
         "replacement":
-          "declare module 'sap/ui/model/CompositeBinding' {\nimport { Event } from 'sap/ui/base/Event';\n"
+          "import Metadata from \"sap/ui/base/Metadata\";\nimport Event from \"sap/ui/base/Event\";"
       },
       {
-        "searchString": "declare module 'sap/ui/model/CompositeBinding' {",
+        "searchString": "import Metadata from \"sap/ui/base/Metadata\";",
         "replacement":
-          "declare module 'sap/ui/model/CompositeBinding' {\nimport { DataState } from 'sap/ui/model/DataState';\n"
+          "import Metadata from \"sap/ui/base/Metadata\";\nimport DataState from 'sap/ui/model/DataState';"
       }
     ],
     "classes/sap/ui/model/analytics/AnalyticalBinding": [
@@ -438,15 +426,71 @@
     "classes/sap/ui/model/odata/ODataMessageParser": [
       {
         "searchString":
-          "public parse(oResponse: {}, oRequest: {}, mGetEntities: any, mChangeEntities: any): any;",
+          "public parse(oResponse: any, oRequest: any, mGetEntities: any, mChangeEntities: any): any;",
         "replacement":
-          "public parse(oResponse: {}, oRequest: {}, mGetEntities: any, mChangeEntities: any): any;\npublic parse(): any;\n"
+          "public parse(oResponse: any, oRequest: any, mGetEntities: any, mChangeEntities: any): any;\npublic parse(): any;\n"
       }
     ],
     "interfaces/sap/ui/core/util/XMLPreprocessor.IContext": [
       {
         "searchString": "getModel(iPart: number): Model;",
         "replacement": "getModel(iPart: number): any;"
+      }
+    ],
+    "classes/sap/ui/model/odata/v2/ODataTreeBinding": [
+      {
+        "searchString":
+          "public getNodeContexts(oContext: Context, iStartIndex: number, iLength: number, iThreshold: number): any[];",
+        "replacement":
+          "public getNodeContexts(oContext: Context, iStartIndex: number, iLength: number, iThreshold?: number): any[];"
+      }
+    ],
+    "classes/sap/ui/base/ManagedObject": [
+      {
+        "searchString": "public getModel(sName?: string | any): Model;",
+        "replacement":
+          "public getModel<TModel extends Model>(sName?: string): TModel;"
+      }
+    ],
+    "classes/sap/ui/core/Controller": [
+      {
+        "searchString": "public byId(sId: string): Element;",
+        "replacement":
+          "public byId<T extends Element = Element>(sId: string): T;"
+      }
+    ],
+    "classes/sap/ui/model/analytics/odata4analytics*": [
+      {
+        "searchString": "export default class ",
+        "replacement": "export class "
+      }
+    ],
+    "classes/sap/m/SelectionDetailsFacade.SelectionDetailsItemFacade": [
+      {
+        "searchString": "export default class ",
+        "replacement": "export class "
+      }
+    ],
+    "classes/sap/ui/core/Configuration.FormatSettings": [
+      {
+        "searchString": "export default class ",
+        "replacement": "export class "
+      }
+    ],
+    "namespaces/jQuery": [
+      {
+      "searchString": " \\| Control",
+      "replacement": "",
+      "isRegex": true,
+      "regexFlags": "g"
+      }
+    ],
+    "namespaces/jQuery.sap": [
+      {
+      "searchString": " \\| Control",
+      "replacement": "",
+      "isRegex": true,
+      "regexFlags": "g"
       }
     ]
   }

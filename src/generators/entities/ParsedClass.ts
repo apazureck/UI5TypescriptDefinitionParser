@@ -27,36 +27,21 @@ export class ParsedClass extends GeneratorBase implements IClass {
     return this.onAddImport.bind(this);
   }
   constructor(
-    private documentClass: ISymbol,
+    symbol: ISymbol,
     private classTemplate: HandlebarsTemplateDelegate<any>,
     config: IConfig,
     private decorated: ILogDecorator,
-    private isAmbient?: boolean
+    isAmbient?: boolean
   ) {
     super(config);
+    this.symbol = symbol;
+    this.isAmbient = isAmbient;
     if (!logger) {
       logger = new Log("Parser", LogLevel.getValue(this.config.logLevel));
     }
     this.createMissingProperties();
   }
   constructors: ParsedMethod[];
-  get basename(): string {
-    return this.documentClass.basename;
-  }
-
-  get namespace(): string {
-    const ret = this.documentClass.name.split(".");
-    ret.pop();
-    return ret.join(".");
-  }
-
-  get module(): string {
-    return this.documentClass.module;
-  }
-
-  get name(): string {
-    return this.documentClass.name;
-  }
 
   public childClasses: ParsedClass[] = [];
 
@@ -69,24 +54,13 @@ export class ParsedClass extends GeneratorBase implements IClass {
     this._baseclass = value;
   }
   get extendedClass(): string {
-    return this.documentClass.extends;
+    return this.symbol.extends;
   }
   methods: ParsedMethod[] = [];
   events: ParsedEvent[];
   get description(): string {
-    return this.documentClass.description;
+    return this.symbol.description;
   }
-
-  public get Imports(): IImport[] {
-    const impa = [];
-    for (const importkey in this.imports) {
-      if (importkey) {
-        impa.push(this.imports[importkey]);
-      }
-      return impa;
-    }
-  }
-  private imports: { [key: string]: IImport };
 
   toString(): string {
     // this.parsedDescription = this.createDescription(this.description);
@@ -106,15 +80,14 @@ export class ParsedClass extends GeneratorBase implements IClass {
 
   private createMissingProperties(): void {
     this.log("Creating properties, events and methods");
-    this.imports = {};
 
-    if (this.documentClass.extends) {
-      this.addImport(this.documentClass.extends);
+    if (this.symbol.extends) {
+      this.addImport(this.symbol.extends);
     }
 
     // 4. Create Events
-    if (this.documentClass.events) {
-      this.events = this.documentClass.events.map(
+    if (this.symbol.events) {
+      this.events = this.symbol.events.map(
         (value, index, array) =>
           new ParsedEvent(
             value,
@@ -129,8 +102,8 @@ export class ParsedClass extends GeneratorBase implements IClass {
     }
 
     // 5. Create methods
-    if (this.documentClass.methods) {
-      for (const value of this.documentClass.methods) {
+    if (this.symbol.methods) {
+      for (const value of this.symbol.methods) {
         this.methods = this.methods.concat(
           ParsedMethod.overloadLeadingOptionalParameters(
             value,
@@ -147,16 +120,16 @@ export class ParsedClass extends GeneratorBase implements IClass {
 
     // 6. Create Constructor
     try {
-      if (this.documentClass.constructor) {
-        this.documentClass.constructor.name = "constructor";
-        this.documentClass.constructor.visibility = "public";
-        if (this.documentClass.constructor.parameters[1].name === "mSettings") {
-          this.documentClass.constructor.parameters[1].type =
-            "I" + this.documentClass.basename + "Settings";
+      if (this.symbol.constructor) {
+        this.symbol.constructor.name = "constructor";
+        this.symbol.constructor.visibility = "public";
+        if (this.symbol.constructor.parameters[1].name === "mSettings") {
+          this.symbol.constructor.parameters[1].type =
+            "I" + this.symbol.basename + "Settings";
         }
 
         this.constructors = ParsedMethod.overloadLeadingOptionalParameters(
-          this.documentClass.constructor,
+          this.symbol.constructor,
           this.onAddImport.bind(this),
           this,
           this.config,
@@ -176,9 +149,9 @@ export class ParsedClass extends GeneratorBase implements IClass {
 
       let props: IProperty[] = [];
 
-      if (this.documentClass["ui5-metadata"]) {
-        if (this.documentClass["ui5-metadata"].properties) {
-          for (const prop of this.documentClass["ui5-metadata"].properties) {
+      if (this.symbol["ui5-metadata"]) {
+        if (this.symbol["ui5-metadata"].properties) {
+          for (const prop of this.symbol["ui5-metadata"].properties) {
             prop.type = this.getType(prop.type);
             props.push(prop);
           }
@@ -191,96 +164,6 @@ export class ParsedClass extends GeneratorBase implements IClass {
   }
 
   private settingsInterfaceProperties: IProperty[] = [];
-
-  /**
-   * Adds an import. Returns the alias name if types should have the same type name.
-   *
-   * @protected
-   * @memberof ParsedClass
-   */
-  protected onAddImport = (typeName: string, context?: "static"): string => {
-    if (!typeName) {
-      return;
-    }
-
-    if (typeName === "this") {
-      if (context === "static") {
-        if (this.isAmbient) return this.name;
-        else return this.basename;
-      } else {
-        if (this.isAmbient) return this.name;
-        else return "this";
-      }
-    }
-
-    this.log("Adding import '" + typeName + "'");
-
-    if (typeName === "I" + this.basename + "Settings") {
-      return typeName;
-    }
-
-    if (this.name === typeName) {
-      return context === "static"
-        ? this.isAmbient ? this.name : this.basename
-        : "this";
-    }
-
-    if (this.config.ambientTypes[typeName]) {
-      return typeName;
-    }
-
-    if (this.isAmbient) {
-      return typeName;
-    }
-
-    const foundType = this.imports[typeName];
-    try {
-      // Check if type with same name is already in list
-      if (foundType) {
-        // Do nothing else if module is already imported
-        return (
-          foundType.alias ||
-          (this.isAmbient ? foundType.name : foundType.basename)
-        );
-      } else {
-        const newmodulartype = this.config.modularTypes[typeName];
-        // Check if there is already a type imported with the same name
-        for (const impkey in this.imports) {
-          const imp = this.imports[impkey];
-          if (imp) {
-            if (imp.basename === newmodulartype.basename) {
-              this.imports[typeName] = {
-                basename: newmodulartype.basename,
-                name: newmodulartype.name,
-                module: newmodulartype.module,
-                alias: newmodulartype.name.replace(/\./g, "_")
-              };
-              return (
-                this.imports[typeName].alias || this.imports[typeName].basename
-              );
-            }
-          }
-        }
-        this.imports[typeName] = {
-          basename: newmodulartype.basename,
-          name: newmodulartype.name,
-          module: newmodulartype.module,
-          alias:
-            this.basename === newmodulartype.basename
-              ? newmodulartype.name.replace(/\./g, "_")
-              : undefined
-        };
-        return this.imports[typeName].alias || this.imports[typeName].basename;
-      }
-    } catch (error) {
-      logger.Error(
-        `Could not get type for ${typeName}, returning any type : ${
-          error.message
-        }`
-      );
-      return "any";
-    }
-  };
 
   private createDescription(description: string): string {
     this.log("Creating description");

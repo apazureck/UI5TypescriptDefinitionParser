@@ -6,21 +6,13 @@ import { ParsedParameter } from './ParsedParameter'
 import { ParsedField } from './ParsedField';
 
 export class ParsedNamespace extends GeneratorBase {
-    private imports: IDictionary = {};
-    public get name(): string {
-        return this.documentNamespace.name;
-    };
-
-    public get basename(): string {
-        return this.documentNamespace.basename;
-    }
-
     public methods: ParsedMethod[] = [];
     public fields: ParsedField[] = [];
-    constructor(private documentNamespace: ISymbol, config: IConfig, private decorated: ILogDecorator) {
+    constructor(symbol: ISymbol, config: IConfig, private decorated: ILogDecorator, private template: HandlebarsTemplateDelegate) {
         super(config);
-        this.createNamespaceMethods(this.documentNamespace);
-        this.createFields(this.documentNamespace);
+        this.symbol = symbol;
+        this.createNamespaceMethods(this.symbol);
+        this.createFields(this.symbol);
     }
 
     private createFields(namespace: ISymbol): void {
@@ -41,11 +33,20 @@ export class ParsedNamespace extends GeneratorBase {
                 // let cg = new ClassGenerator(this.classTemplate, this.config, this);
                 // return { content: cg.createClass(namespace), isStaticClass: true };
             }
-            // let mg = new MethodGenerator(this.config, this.addImport.bind(this), this);
+            
+            // Create Methods and their overloads
             for (const method of namespace.methods) {
                 if (method.visibility === "public") {
-                    this.methods.push(new ParsedMethod(method, this.onAddImport.bind(this), this, this.config, this));
-                }
+                  this.methods = this.methods.concat(
+                    ParsedMethod.overloadLeadingOptionalParameters(
+                      method,
+                      this.onAddImport.bind(this),
+                      this,
+                      this.config,
+                      this
+                    )
+                  );
+              }
             }
         }
     }
@@ -58,14 +59,6 @@ export class ParsedNamespace extends GeneratorBase {
         }
     }
 
-    onAddImport = (fullTypeName: string): string => {
-        const typename = fullTypeName.split(this.typeSeparators).pop();
-        if (!this.imports[typename]) {
-            this.imports[typename] = `import { ${typename} } from '${fullTypeName.replace(/\./g, "/")}'`;
-        }
-        return fullTypeName;
-    }
-
     private createDescription(description: string): string {
         let ret = "";
         if (description) {
@@ -75,6 +68,9 @@ export class ParsedNamespace extends GeneratorBase {
         return this.makeComment(ret);
     }
 
+    public parse(): string {
+        return this.template(this);
+    }
     public toString(): string {
         throw new Error("Not implemented!");
     }

@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * Parameter descriptions
 * File references in parsed description
 
+## [0.2.0] - 2018-02-xy
+
+### Changed
+
+* Generation for interfaces, namespaces and enums
+* Enum layout (namespace with string type and constants)
+
+### Fixed
+
+* Overloaded replaced array types did not get array ending '[]'
+
 ## [0.1.0] - 2018-02-22
 
 ### Added

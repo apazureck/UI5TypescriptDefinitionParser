@@ -1,12 +1,17 @@
+import {ParsedNamespace} from './generators/entities/ParsedNamespace';
 import { ISymbol } from "./UI5DocumentationTypes";
 import { LogLevel } from "./log";
 
 export interface IConfig {
   templates: {
-    interface: string;
+    ambientInterface: string;
+    modularInterface: string
     ambientClass: string,
     modularClass: string,
-    enum: string;
+    ambientEnum: string;
+    modularEnum: string;
+    modularNamespace: string;
+    ambientNamespace: string;
   }
   outdir: string,
   preProcessing: {
@@ -20,6 +25,7 @@ export interface IConfig {
     root: string;
     endpoints: string[];
   };
+  namespaceModules: {[moduleName: string]: ParsedNamespace[]}
   /**
    * Maps given types from the documentation to a custom given type
    *
@@ -78,9 +84,7 @@ export interface ILogDecorator {
 }
 
 export interface IImport {
-  module: string;
-  basename: string;
-  name: string;
+  type: ISymbol
   alias?: string;
 }
 

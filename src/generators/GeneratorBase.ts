@@ -1,7 +1,9 @@
-import { IConfig, ILogDecorator } from "../types";
+import { IConfig, ILogDecorator, IImport } from "../types";
 import * as Handlebars from "handlebars";
 import * as htmltomd from "html-to-markdown";
 import * as jsdoc2md from "jsdoc-to-markdown";
+import { ISymbol } from "../UI5DocumentationTypes";
+import { Log, LogLevel } from "../log";
 
 htmltomd.use((html: string) => {
   return html.replace(/(<code>|<\/code>)/g, "`");
@@ -9,6 +11,8 @@ htmltomd.use((html: string) => {
 htmltomd.use((html: string) => {
   return html.replace(/(<\/br>|<br\/>)/g, "\n");
 });
+
+let logger: Log;
 
 export abstract class GeneratorBase implements ILogDecorator {
   protected readonly typeSeparators = /[\.\/]/g;
@@ -23,7 +27,32 @@ export abstract class GeneratorBase implements ILogDecorator {
     TcustomData: "TcustomData"
   };
 
-  constructor(protected readonly config: IConfig) {}
+  protected symbol: ISymbol;
+  get basename(): string {
+    return this.symbol.basename;
+  }
+
+  get export(): string {
+    return this.symbol.export;
+  }
+
+  constructor(protected readonly config: IConfig) {
+    if (!logger) {
+      logger = new Log("Parser", LogLevel.getValue(this.config.logLevel));
+    }
+  }
+
+  public get Imports(): IImport[] {
+    const impa = [];
+    for (const importkey in this.imports) {
+      if (importkey) {
+        impa.push(this.imports[importkey]);
+      }
+      return impa;
+    }
+  }
+  private imports: { [key: string]: IImport } = {};
+  
   protected addTabs(input: string, tabsct: number, separator?: string): string {
     const tabs = Array(tabsct + 1).join(separator || "\t");
     return tabs + input.split("\n").join("\n" + tabs);
@@ -33,6 +62,21 @@ export abstract class GeneratorBase implements ILogDecorator {
     return styleJsDoc(text);
   }
 
+  get namespace(): string {
+    const ret = this.symbol.name.split(".");
+    ret.pop();
+    return ret.join(".");
+  }
+
+  get module(): string {
+    return this.symbol.module;
+  }
+
+  get name(): string {
+    return this.symbol.name;
+  }
+  protected isAmbient?: boolean;
+
   protected getType(originType: string, context?: "static", complexOut?: { restype: string, origintype: string}[]): string {
     if (!originType) {
       return "any";
@@ -41,6 +85,22 @@ export abstract class GeneratorBase implements ILogDecorator {
     let ret: string[] = [];
     for (let type of unionTypes) {
       let isArray = false;
+
+      if (this.config.typeMap.hasOwnProperty(type)) {
+        const oldtype = type;
+        const entry = this.config.typeMap[type];
+        this.log("Replaced: Type '" + oldtype + "' => Type '" + type + "'");
+        if(typeof entry !== "string") {
+          type = (entry as any).replacement;
+          if((entry as any).return) {
+            ret.push(type);
+            continue;
+          }
+        } else {
+          type = entry;
+        }
+      }
+
       if (type.match(/\[\]$/)) {
         isArray = true;
         type = type.replace(/\[\]$/, "");
@@ -50,22 +110,6 @@ export abstract class GeneratorBase implements ILogDecorator {
 
       if(complexOut) {
         curtype.origintype = type;
-      }
-
-      if (this.config.typeMap.hasOwnProperty(type)) {
-        const oldtype = type;
-
-        // Check if class is namespaced
-        // if (!type.match(/\./)) {
-        type = this.config.typeMap[type];
-        ret.push(type);
-        this.log("Replaced: Type '" + oldtype + "' => Type '" + type + "'");
-        if(complexOut) {
-          curtype.restype = type;
-          complexOut.push(curtype as any);
-        }
-        continue;
-        // }
       }
 
       if (this.tsBaseTypes.hasOwnProperty(type)) {
@@ -122,11 +166,95 @@ export abstract class GeneratorBase implements ILogDecorator {
     }
   }
 
-  protected onAddImport: (module: string, context?: "static") => string;
-
   protected makeComment(description: string): string {
     return makeComment(description);
   }
+
+  /**
+   * Adds an import. Returns the alias name if types should have the same type name.
+   *
+   * @protected
+   * @memberof ParsedClass
+   */
+  protected onAddImport = (typeName: string, context?: "static"): string => {
+    if (!typeName) {
+      return;
+    }
+
+    if (typeName === "this") {
+      if (context === "static") {
+        if (this.isAmbient) return this.name;
+        else return this.basename;
+      } else {
+        if (this.isAmbient) return this.name;
+        else return "this";
+      }
+    }
+
+    this.log("Adding import '" + typeName + "'");
+
+    if (typeName === "I" + this.basename + "Settings") {
+      return typeName;
+    }
+
+    if (this.name === typeName) {
+      return context === "static"
+        ? this.isAmbient ? this.name : this.basename
+        : "this";
+    }
+
+    if (this.config.ambientTypes[typeName]) {
+      return typeName;
+    }
+
+    if (this.isAmbient) {
+      return typeName;
+    }
+
+    const foundType = this.imports[typeName];
+    try {
+      // Check if type with same name is already in list
+      if (foundType) {
+        // Do nothing else if module is already imported
+        return (
+          foundType.alias ||
+          (this.isAmbient ? foundType.type.name : foundType.type.basename)
+        );
+      } else {
+        const newmodulartype = this.config.modularTypes[typeName];
+        // Check if there is already a type imported with the same name
+        for (const impkey in this.imports) {
+          const imp = this.imports[impkey];
+          if (imp) {
+            if (imp.type.basename === newmodulartype.basename) {
+              this.imports[typeName] = {
+                type: newmodulartype,
+                alias: newmodulartype.name.replace(/\./g, "_")
+              };
+              return (
+                this.imports[typeName].alias || this.imports[typeName].type.basename
+              );
+            }
+          }
+        }
+        this.imports[typeName] = {
+          type: newmodulartype,
+          alias:
+            this.basename === newmodulartype.basename
+              ? newmodulartype.name.replace(/\./g, "_")
+              : undefined
+        };
+        return this.imports[typeName].alias || this.imports[typeName].type.basename;
+      }
+    } catch (error) {
+      logger.Error(
+        `Could not get type for ${typeName}, returning any type : ${
+          error.message
+        }`
+      );
+      return "any";
+    }
+  };
 
   abstract log(message: string, sourceStack?: string);
 }

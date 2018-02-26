@@ -38,54 +38,72 @@ interface IObservedApis {
  * @class Parser
  */
 export class Parser implements ILogDecorator {
+  modularInterfaceTemplate: HandlebarsTemplateDelegate<any>;
   allInterfaces: ParsedClass[] = [];
   private config: IConfig;
   private outfolder: string;
-
   private observedAPIs: IObservedApis = {};
 
   private currentApi: IApi;
   private logger: Log;
 
-  private interfaceTemplate: HandlebarsTemplateDelegate;
+  private ambientInterfaceTemplate: HandlebarsTemplateDelegate;
 
-  private enumTemplate: HandlebarsTemplateDelegate;
-
+  private ambientEnumTemplate: HandlebarsTemplateDelegate;
+  private modularEnumTemplate: HandlebarsTemplateDelegate;
   private allClasses: ParsedClass[] = [];
   private allNamespaces: ParsedNamespace[] = [];
 
   private modularClassTemplate: HandlebarsTemplateDelegate;
   private ambientClassTemplate: HandlebarsTemplateDelegate;
+  private modularNamespaceTemplate: HandlebarsTemplateDelegate;
+
+  private ambientNamespaceTemplate: HandlebarsTemplateDelegate;
 
   constructor(private configPath: string) {
     this.config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
     this.logger = new Log("Parser", LogLevel.getValue(this.config.logLevel));
     this.logger.Trace("Started Logger");
     this.ambientClassTemplate = Handlebars.compile(
-      fs.readFileSync(this.config.templates.ambientClass, "utf8"),
+      fs.readFileSync(this.config.templates.ambientClass, "utf-8"),
       {
         noEscape: true
       }
     );
-    this.enumTemplate = Handlebars.compile(
-      fs.readFileSync(this.config.templates.enum, "utf-8"),
+    this.ambientEnumTemplate = Handlebars.compile(
+      fs.readFileSync(this.config.templates.ambientEnum, "utf-8"),
+      {
+        noEscape: true
+      }
+    );
+    this.modularEnumTemplate = Handlebars.compile(
+      fs.readFileSync(this.config.templates.modularEnum, "utf-8"),
       {
         noEscape: true
       }
     );
     this.modularClassTemplate = Handlebars.compile(
-      fs.readFileSync(this.config.templates.modularClass, "utf8"),
+      fs.readFileSync(this.config.templates.modularClass, "utf-8"),
       {
         noEscape: true
       }
     );
-    this.interfaceTemplate = Handlebars.compile(
-      fs.readFileSync(this.config.templates.interface, "utf8"),
-      {
-        noEscape: true
-      }
+    this.ambientInterfaceTemplate = Handlebars.compile(
+      fs.readFileSync(this.config.templates.ambientInterface, "utf-8"),
+      { noEscape: true }
+    );
+    this.modularInterfaceTemplate = Handlebars.compile(fs.readFileSync(this.config.templates.modularInterface, "utf-8"),
+    { noEscape: true});
+    this.ambientNamespaceTemplate = Handlebars.compile(
+      fs.readFileSync(this.config.templates.ambientNamespace, "utf-8"),
+      { noEscape: true }
+    );
+    this.modularNamespaceTemplate = Handlebars.compile(
+      fs.readFileSync(this.config.templates.modularNamespace, "utf-8"),
+      { noEscape: true }
     );
   }
+
   async GenerateDeclarations(outfolder?: string): Promise<void> {
     return new Promise<void>(async (resolve, reject) => {
       this.outfolder = outfolder || this.config.outdir;
@@ -253,12 +271,6 @@ export class Parser implements ILogDecorator {
   private createNamespaceFiles() {
     this.logger.Info("Creating Namespace files");
     // Make namespace files
-    const nstemplate = Handlebars.compile(
-      fs.readFileSync("templates/namespace.d.ts.hb", "utf-8"),
-      {
-        noEscape: true
-      }
-    );
     for (const ns of this.allNamespaces) {
       const filepath = path.join(
         this.outfolder,
@@ -273,7 +285,7 @@ export class Parser implements ILogDecorator {
           if (fs.existsSync(filepath)) {
             this.logger.Error("File already exists");
           } else {
-            fs.writeFileSync(filepath, nstemplate(ns), { encoding: "utf-8" });
+            fs.writeFileSync(filepath, ns.parse(), { encoding: "utf-8" });
           }
         } catch (error) {
           console.error(
@@ -389,32 +401,26 @@ export class Parser implements ILogDecorator {
 
     for (const typename in config.ambientTypes) {
       const type = config.ambientTypes[typename];
-      this.createEnum(type, info);
+      this.createEnum(type, info, this.ambientEnumTemplate);
     }
     for (const typename in config.modularTypes) {
       const type = config.modularTypes[typename];
-      if (this.createEnum(type, info)) {
-        if (config.ambientTypes[typename]) {
-          let i = 0;
-        } else {
-          config.ambientTypes[typename] = config.modularTypes[typename];
-          delete config.modularTypes[typename];
-        }
-      }
+      this.createEnum(type, info, this.modularEnumTemplate)
     }
     return info;
   }
 
   private createEnum(
     type: ISymbol,
-    info: { generatedEnumCount: number }
+    info: { generatedEnumCount: number },
+    template: HandlebarsTemplateDelegate
   ): boolean {
     if (type.kind === "enum") {
       const filepath = path.join(this.outfolder, "enums", type.name + ".d.ts");
       if (fs.existsSync(filepath)) {
         this.logger.Error("File already exists");
       } else {
-        fs.writeFileSync(filepath, this.enumTemplate(type), {
+        fs.writeFileSync(filepath, template(type), {
           encoding: "utf-8"
         });
       }
@@ -441,19 +447,14 @@ export class Parser implements ILogDecorator {
 
     for (const symbolname in config.ambientTypes) {
       const s = config.ambientTypes[symbolname];
-      this.pushNamespace(s, info);
+      this.pushNamespace(s, info, this.ambientNamespaceTemplate);
+      info.generatedNamespaceCount++;
     }
 
     for (const symbolname in config.modularTypes) {
       const s = config.modularTypes[symbolname];
-      if (this.pushNamespace(s, info)) {
-        if (config.ambientTypes[symbolname]) {
-          let i = 0;
-        } else {
-          config.ambientTypes[symbolname] = config.modularTypes[symbolname];
-          delete config.modularTypes[symbolname];
-        }
-      }
+      this.pushNamespace(s, info, this.modularNamespaceTemplate);
+      info.generatedNamespaceCount++;
     }
 
     return info;
@@ -461,20 +462,21 @@ export class Parser implements ILogDecorator {
 
   private pushNamespace(
     s: ISymbol,
-    info: { generatedNamespaceCount: number }
-  ): boolean {
+    info: { generatedNamespaceCount: number },
+    template: HandlebarsTemplateDelegate
+  ): ParsedNamespace {
     switch (s.kind) {
       case "namespace":
-        const ns = new ParsedNamespace(s, this.config, this);
+        const ns = new ParsedNamespace(s, this.config, this, template);
         this.allNamespaces.push(ns);
         // Write to file
         // TODO: Create folder structure
         // fs.writeFileSync(path.join(this.outfolder, "classes", s.name + ".d.ts"), cstring, 'utf-8');
         // this.log("Created Declaration for class '" + s.name + "'");
         info.generatedNamespaceCount++;
-        return true;
+        return ns;
       default:
-        return false;
+        return undefined;
     }
   }
 
@@ -492,29 +494,22 @@ export class Parser implements ILogDecorator {
 
     for (const symbolname in config.ambientTypes) {
       const s = config.ambientTypes[symbolname];
-      this.createInterface(s, info);
+      this.createInterface(s, info, this.ambientInterfaceTemplate);
     }
 
     for (const symbolname in config.modularTypes) {
       const s = config.modularTypes[symbolname];
-      if (this.createInterface(s, info)) {
-        if (config.ambientTypes[symbolname]) {
-          let i = 0;
-        } else {
-          config.ambientTypes[symbolname] = config.modularTypes[symbolname];
-          delete config.modularTypes[symbolname];
-        }
-      }
+      this.createInterface(s, info, this.modularInterfaceTemplate);
     }
 
     this.log("Created " + info.generatedClassCount);
     return info;
   }
 
-  private createInterface(s: ISymbol, info: { generatedClassCount: number }) {
+  private createInterface(s: ISymbol, info: { generatedClassCount: number }, template: HandlebarsTemplateDelegate) {
     switch (s.kind) {
       case "interface":
-        const i = new ParsedClass(s, this.interfaceTemplate, this.config, this);
+        const i = new ParsedClass(s, template, this.config, this);
         this.allInterfaces.push(i);
         info.generatedClassCount++;
         return true;

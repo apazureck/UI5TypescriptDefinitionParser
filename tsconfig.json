@@ -14,8 +14,8 @@
     },
     "types": ["node"],
     "exclude": [
-        "out/**/*",
-        "test/**/*",
-        "src/replacements/**/*"
+        "out",
+        "test",
+        "src/replacements"
     ]
 }

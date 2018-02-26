@@ -1,0 +1,1 @@
+declare namespace sap.typescript { export type ModelName = string; }
