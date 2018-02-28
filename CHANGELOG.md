@@ -16,10 +16,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 * Generation for interfaces, namespaces and enums
 * Enum layout (namespace with string type and constants)
+* Additional modular and ambient d.ts files for namespaces (workaround for umd for now)
 
 ### Fixed
 
 * Overloaded replaced array types did not get array ending '[]'
+* interface did not create optional parameters
+* class constructors did not generate optional parameters
+* some methods did not get optional parameters
 
 ## [0.1.0] - 2018-02-22
 

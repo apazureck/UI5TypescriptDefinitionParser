@@ -6,9 +6,10 @@ import { ParsedParameter } from './ParsedParameter'
 import { ParsedField } from './ParsedField';
 
 export class ParsedNamespace extends GeneratorBase {
+    appended: boolean = false;
     public methods: ParsedMethod[] = [];
     public fields: ParsedField[] = [];
-    constructor(symbol: ISymbol, config: IConfig, private decorated: ILogDecorator, private template: HandlebarsTemplateDelegate) {
+    constructor(symbol: ISymbol, config: IConfig, private decorated: ILogDecorator, private template: HandlebarsTemplateDelegate, public readonly isModule: boolean) {
         super(config);
         this.symbol = symbol;
         this.createNamespaceMethods(this.symbol);

@@ -1,5 +1,5 @@
+declare module "{{module}}" {
 
-declare module '{{module}}' {
     {{#each imports}}
     {{getImport this}}
     {{/each}}

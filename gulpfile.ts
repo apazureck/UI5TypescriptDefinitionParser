@@ -28,7 +28,7 @@ export class Gulpfile {
       "copyHandlebarsTemplates",
       "replaceFiles",
       "runTest",
-      "copyDeclarationsToTestFolder"
+      ["copyDeclarationsToTestFolder", "copyDeclarationsToExampleProject"]
     ];
   }
   
@@ -43,7 +43,13 @@ export class Gulpfile {
     return gulp
       .src("./declarations/**/*")
       .pipe(gulp.dest("../test/declarations"));
-      // .pipe(gulp.dest("../../ui5-typescript-example/typings/ui5"));
+  }
+
+  @Task()
+  copyDeclarationsToExampleProject() {
+    return gulp
+      .src("./declarations/**/*")
+      .pipe(gulp.dest("../../ui5-typescript-example/typings/ui5"));
   }
 
   @Task()

@@ -54,10 +54,16 @@ export function registerHelpers(Handlebars: any) {
       lasttype = baseclass.name;
     }
 
+    // Return if module uses a parameter from its own module (no import necessary)
     if (context.type.module === baseclass.module) {
       return "";
     }
 
+    // Check if module has an internal namespace and mark it as defined (to import multiple modules like this):
+    // import * as basens from 'module/to/load';
+    // type type1 = basens.type1;
+    // type type2 = basens.type2;
+    // etc...
     if (context.type.basename.indexOf(".") > -1) {
       const nsarr = context.type.basename.split(".");
       nsarr.pop();
@@ -70,17 +76,22 @@ export function registerHelpers(Handlebars: any) {
       }
     }
 
+    // Check if the imported type has an alias
     if (context.alias) {
+      // distinguish classes, and rest. 
       if (context.type.kind === "class") {
         return `import * as ${context.type.basename}Import from "${
           context.type.module
         }";
             type ${context.alias} = ${context.type.basename}Import.default;`;
       } else {
+        // Namespaces, enums and interfaces are processed here:
         return `import {${context.type.basename} as ${context.alias}} from "${
           context.type.module
         }";`;
       }
+
+      // If type has no alias
     } else {
       switch (context.type.kind) {
         case "class":
@@ -141,6 +152,11 @@ export function registerHelpers(Handlebars: any) {
     const splitFullName = fullname.split(".");
     splitFullName.pop();
     return splitFullName.join(".");
+  });
+
+  // removeSAP
+  Handlebars.registerHelper("removeSAP", function(fullname: string) {
+    return fullname.replace(/^sap\./, "");
   });
 
   Handlebars.registerHelper("getName", function(fullname: string) {

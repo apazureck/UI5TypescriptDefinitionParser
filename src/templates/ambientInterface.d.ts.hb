@@ -29,7 +29,7 @@ export interface {{basename}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}
 {{this.name}}(
     {{~#if this.parameters.length~}}
     {{~#each this.parameters~}}
-        {{#unless @first}} {{/unless}}{{this.name}}: {{this.type}}{{#unless @last}},{{/unless}}
+        {{#unless @first}} {{/unless}}{{this.name}}{{#if this.optional}}?{{/if}}: {{this.type}}{{#unless @last}},{{/unless}}
     {{~/each~}}
     {{~/if~}}
 ){{#if this.returntype}}: {{#ifCond ../name '==' this.returntype.type}}this{{else}}{{this.returntype.type}}{{/ifCond}}{{/if}};

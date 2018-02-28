@@ -53,8 +53,8 @@
     "Error": "any",
     "event": "any",
     "float": "number",
-    "function": { "replacement": "(() => any)", "return": true },
-    "function()": { "replacement": "(() => any)", "return": true },
+    "function": { "replacement": "Function", "return": true },
+    "function()": { "replacement": "Function", "return": true },
     "(() &#x3D;& gt; any)": {
       "replacement": "(a: any, b: any) => boolean",
       "return": true
@@ -116,7 +116,7 @@
       "return": true
     },
     "Object.<string,function()>": {
-      "replacement": "{[eventName: string]: () => any}",
+      "replacement": "{[eventName: string]: Function}",
       "return": true
     },
     "UriParameters": "jQuery.sap.util.UriParameters",
@@ -223,7 +223,7 @@
     }
   },
   "postProcessing": {
-    "namespaces/sap.ui.core.BusyIndicator": [
+    "sap/ui/core/BusyIndicator": [
       {
         "searchString": ": BusyIndicator",
         "replacement": ": any",
@@ -380,6 +380,14 @@
         "replacement": "export class Logger {"
       }
     ],
+    "namespaces/jquery.sap.global": [
+      {
+        "searchString": " \\| Control",
+        "replacement": "",
+        "isRegex": true,
+        "regexFlags": "g"
+        }
+    ],
     "classes/sap/ui/core/routing/Target": [
       {
         "searchString": "protected destroy(): this;",
@@ -421,6 +429,10 @@
       {
         "searchString": "hasChildren(oContext: Context, mParameters: any)",
         "replacement": "hasChildren(oContext: Context, mParameters?: any)"
+      },
+      {
+        "searchString": "import QueryResult from \"sap/ui/model/analytics/odata4analytics\";",
+          "replacement": "import {QueryResult} from \"sap/ui/model/analytics/odata4analytics\";"
       }
     ],
     "classes/sap/ui/model/odata/ODataMessageParser": [
@@ -429,6 +441,18 @@
           "public parse(oResponse: any, oRequest: any, mGetEntities: any, mChangeEntities: any): any;",
         "replacement":
           "public parse(oResponse: any, oRequest: any, mGetEntities: any, mChangeEntities: any): any;\npublic parse(): any;\n"
+      }
+    ],
+    "sap/ui/commons/MessageBox": [
+      {
+        "searchString": "import Control from \"sap/ui/core/Control\";",
+        "replacement": "import Control from \"sap/ui/core/Control\";\nimport { Action } from \"sap/m/MessageBox\";\nimport Icon from \"sap/ui/core/Icon\";"
+      }
+    ],
+    "sap/m/MessageBox": [
+      {
+        "searchString": "import { TextDirection } from \"sap/ui/core/library\";",
+        "replacement": "import { TextDirection } from \"sap/ui/core/library\";\nimport { Action } from \"sap/m/MessageBox\";\nimport Icon from \"sap/ui/core/Icon\";"
       }
     ],
     "interfaces/sap/ui/core/util/XMLPreprocessor.IContext": [
@@ -452,7 +476,7 @@
           "public getModel<TModel extends Model>(sName?: string): TModel;"
       }
     ],
-    "classes/sap/ui/core/Controller": [
+    "classes/sap/ui/core/mvc/Controller": [
       {
         "searchString": "public byId(sId: string): Element;",
         "replacement":
@@ -491,6 +515,20 @@
       "replacement": "",
       "isRegex": true,
       "regexFlags": "g"
+      }
+    ],
+    "namespaces/**/*": [
+      {
+        "searchString": "(Action|TextDirection|Icon|Dock|Controller|BusyIndicator|Control|Metadata|ValueState|IContext|Context|ValueListType|Component|View|Fragment|Core|HTMLView|JSONView|JSView|Interface|Template|TemplateView|XMLView)",
+        "replacement": "any",
+        "isRegex": true,
+        "regexFlags": "g"
+      }
+    ],
+    "namespaces/sap/ui/Global.ui": [
+      {
+        "searchString": "anyany | ",
+        "replacement": ""
       }
     ]
   }

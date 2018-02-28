@@ -1,4 +1,4 @@
-declare namespace {{module}} {
+declare namespace {{name}} {
     
     {{#if this.methods.length~}}
     // Methods
