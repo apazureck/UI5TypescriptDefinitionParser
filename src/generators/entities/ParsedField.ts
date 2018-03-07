@@ -1,8 +1,9 @@
-import {GeneratorBase} from '../GeneratorBase';
+import {ParsedBase} from '../ParsedBase';
 import { IProperty, Visibility } from '../../UI5DocumentationTypes';
 import { ParsedNamespace } from './ParsedNamespace';
 import { IConfig, ILogDecorator } from '../../types';
-export class ParsedField extends GeneratorBase {
+export class ParsedField extends ParsedBase {
+    get typings(): string { return undefined };
     constructor(private wrappedProperty: IProperty, private owner: ParsedNamespace, config: IConfig, private decorated: ILogDecorator, addimport: (type: string) => string) {
         super(config);
         this.onAddImport = addimport;

@@ -8,7 +8,8 @@
     "ambientEnum": "templates/ambientEnum.d.ts.hb",
     "modularEnum": "templates/enumModule.d.ts.hb",
     "ambientNamespace": "templates/ambientNamespace.d.ts.hb",
-    "modularNamespace": "templates/namespaceModule.d.ts.hb"
+    "modularNamespace": "templates/namespaceModule.d.ts.hb",
+    "module": "templates/module.d.ts.hb"
   },
   "connection": {
     "root": "https://openui5.hana.ondemand.com/test-resources",
@@ -53,8 +54,14 @@
     "Error": "any",
     "event": "any",
     "float": "number",
-    "function": { "replacement": "Function", "return": true },
-    "function()": { "replacement": "Function", "return": true },
+    "function": {
+      "replacement": "Function",
+      "return": true
+    },
+    "function()": {
+      "replacement": "Function",
+      "return": true
+    },
     "(() &#x3D;& gt; any)": {
       "replacement": "(a: any, b: any) => boolean",
       "return": true
@@ -96,8 +103,7 @@
     "sap.ui.demokit.UI5EntityCueCardStyle": "any",
     "sap.ui.message.MessagePaser": "sap.ui.core.message.MessageParser",
     "sap.ui.message.MessageProcessor": "sap.ui.core.message.MessageProcessor",
-    "sap.ui.model.odata.OdataListBinding":
-      "sap.ui.model.odata.ODataListBinding",
+    "sap.ui.model.odata.OdataListBinding": "sap.ui.model.odata.ODataListBinding",
     "sap.ui.model.odata.v4.lib._MetadataRequestor": "any",
     "sap.ui.suite.TaskCircleColor": "any",
     "sap.ui.test.qunit": "any",
@@ -129,43 +135,26 @@
     },
     "IBar": "sap.m.IBar",
     "IBarHTMLTag": "sap.m.IBarHTMLTag",
-    "sap.ui.commons.form.SimpleFormLayout":
-      "sap.ui.layout.form.SimpleFormLayout",
+    "sap.ui.commons.form.SimpleFormLayout": "sap.ui.layout.form.SimpleFormLayout",
     "sap.ui.commons.TitleLevel": "sap.ui.core.TitleLevel"
   },
   "substitutedTypes": {
-    "sap.ui.core.CSSSize":
-      "declare namespace sap.ui.core {\nexport type CSSSize = string;\n}",
-    "sap.ui.core.ID":
-      "declare namespace sap.ui.core {\nexport type ID = string;\n}",
-    "sap.ui.core.URI":
-      "declare namespace sap.ui.core {\nexport type URI = string;\n}",
-    "sap.ui.model.ModelName":
-      "declare namespace sap.ui.model {\nexport type Modelname = string;\n}",
-    "sap.m.IconTabBarSelectList":
-      "declare namespace sap.m {\nexport type IconTabBarSelectList = any;\n}",
-    "jQuery.sap.log.Logger":
-      "declare namespace jQuery.sap.log {\nexport type Logger = {};\n}",
-    "sap.ui.core.CSSColor":
-      "declare namespace sap.ui.core {\nexport type CSSColor = string;\n}",
-    "sap.ui.core.Dock":
-      "declare namespace sap.ui.core {\nexport type Dock = 'begin top' | 'begin center' | 'begin bottom' | 'left top' | 'left center' | 'left bottom' | 'right top' | 'right center' | 'right bottom' | 'center top' | 'center center' | 'center bottom' | 'end top' | 'end center' | 'end bottom'\n}",
-    "sap.ui.core.Percentage":
-      "declare namespace sap.ui.core {\nexport type Percentage = string;\n}",
-    "sap.ui.commons.SplitterSize":
-      "declare namespace sap.ui.commons {\nexport type SplitterSize = string;\n}",
-    "sap.ui.layout.GridIndent":
-      "declare namespace sap.ui.layout {\nexport type GridIndent = string;\n}",
-    "sap.ui.layout.GridSpan":
-      "declare namespace sap.ui.layout {\nexport type GridSpan = string;\n}",
-    "sap.ui.core.Collision":
-      "declare namespace sap.ui.core { export type Collision = 'flip flip' | 'fit flip' | 'none flip' | 'flip fit' | 'fit fit' | 'none fit' | 'flip none' | 'fit none' | 'none none'; }",
-    "sap.ui.layout.form.GridElementCells":
-      "declare namespace sap.ui.layout.form { export type GridElementCells = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 'auto' | 'full'; }",
-    "sap.ui.model.odata.v2.ODataAnnotations.Source":
-      "declare namespace sap.ui.model.odata.v2.ODataAnnotations { export type Source = string; }",
-    "sap.uxap.BlockBaseColumnLayout":
-      "declare namespace sap.uxap { export type BlockBaseColumnLayout = 'auto' | 1 | 2 | 3; }"
+    "sap.ui.core.CSSSize": "declare namespace sap.ui.core {\nexport type CSSSize = string;\n}",
+    "sap.ui.core.ID": "declare namespace sap.ui.core {\nexport type ID = string;\n}",
+    "sap.ui.core.URI": "declare namespace sap.ui.core {\nexport type URI = string;\n}",
+    "sap.ui.model.ModelName": "declare namespace sap.ui.model {\nexport type Modelname = string;\n}",
+    "sap.m.IconTabBarSelectList": "declare namespace sap.m {\nexport type IconTabBarSelectList = any;\n}",
+    "sap.ui.core.CSSColor": "declare namespace sap.ui.core {\nexport type CSSColor = string;\n}",
+    "sap.ui.core.Dock": "declare namespace sap.ui.core {\nexport type Dock = 'begin top' | 'begin center' | 'begin bottom' | 'left top' | 'left center' | 'left bottom' | 'right top' | 'right center' | 'right bottom' | 'center top' | 'center center' | 'center bottom' | 'end top' | 'end center' | 'end bottom'\n}",
+    "sap.ui.core.Percentage": "declare namespace sap.ui.core {\nexport type Percentage = string;\n}",
+    "sap.ui.commons.SplitterSize": "declare namespace sap.ui.commons {\nexport type SplitterSize = string;\n}",
+    "sap.ui.layout.GridIndent": "declare namespace sap.ui.layout {\nexport type GridIndent = string;\n}",
+    "sap.ui.layout.GridSpan": "declare namespace sap.ui.layout {\nexport type GridSpan = string;\n}",
+    "sap.ui.core.Collision": "declare namespace sap.ui.core { export type Collision = 'flip flip' | 'fit flip' | 'none flip' | 'flip fit' | 'fit fit' | 'none fit' | 'flip none' | 'fit none' | 'none none'; }",
+    "sap.ui.layout.form.GridElementCells": "declare namespace sap.ui.layout.form { export type GridElementCells = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 'auto' | 'full'; }",
+    "sap.ui.model.odata.v2.ODataAnnotations.Source": "declare namespace sap.ui.model.odata.v2.ODataAnnotations { export type Source = string; }",
+    "sap.uxap.BlockBaseColumnLayout": "declare namespace sap.uxap { export type BlockBaseColumnLayout = 'auto' | 1 | 2 | 3; }",
+    "sap.ui.base.Metadata": "declare namespace sap.ui.base { export type Metadata = any; }"
   },
   "cleanParamNames": {
     "<code>vData</code>": "vData",
@@ -174,35 +163,35 @@
   "cacheApis": true,
   "logLevel": "Info",
   "preProcessing": {
+    "pseudoInterfaces": {
+      "comment": "Forces Pseudinterfaces to be ambient to fix multiple module exports",
+      "jsonpath": "symbols[?(@.name == 'sap.m.NavContainerChild')]",
+      "script": "val.forceAmbient = true;"
+    },
     "correctStaticSapM": {
       "comment": "Replaces incorrect static values in sap/m",
       "script": "if(val.name) val.static = false;",
-      "jsonpath":
-        "$.symbols[?(@.kind == 'class' && @.module.startsWith('sap/m/'))].methods[?(@.static == true && @.name.match(/^(?!extend|getMetadata).*$/))]"
+      "jsonpath": "$.symbols[?(@.kind == 'class' && @.module.startsWith('sap/m/'))].methods[?(@.static == true && @.name.match(/^(?!extend|getMetadata).*$/))]"
     },
     "correctTitleChangedEventType": {
       "comment": "Corrects the titleChanged event type",
       "script": "val.type = 'sap.ui.base.Event';",
-      "jsonpath":
-        "$.symbols[?(@.name == 'sap.ui.core.routing.Router')].events[?(@.name == 'titleChanged')].parameters.0"
+      "jsonpath": "$.symbols[?(@.name == 'sap.ui.core.routing.Router')].events[?(@.name == 'titleChanged')].parameters.0"
     },
     "correctTargetDisplayEventType": {
       "comment": "Corrects the display event type",
       "script": "val.type = 'sap.ui.base.Event';",
-      "jsonpath":
-        "$.symbols[?(@.name == 'sap.ui.core.routing.Target')].events[?(@.name == 'display')].parameters.0"
+      "jsonpath": "$.symbols[?(@.name == 'sap.ui.core.routing.Target')].events[?(@.name == 'display')].parameters.0"
     },
     "correctTargetsDisplayEventType": {
       "comment": "Corrects the display event type",
       "script": "val.type = 'sap.ui.base.Event';",
-      "jsonpath":
-        "$.symbols[?(@.name == 'sap.ui.core.routing.Targets')].events[?(@.name == 'display')].parameters.0"
+      "jsonpath": "$.symbols[?(@.name == 'sap.ui.core.routing.Targets')].events[?(@.name == 'display')].parameters.0"
     },
     "correctTargetsTitleChangedEventType": {
       "comment": "Corrects the display event type",
       "script": "val.type = 'sap.ui.base.Event';",
-      "jsonpath":
-        "$.symbols[?(@.name == 'sap.ui.core.routing.Targets')].events[?(@.name == 'titleChanged')].parameters.0"
+      "jsonpath": "$.symbols[?(@.name == 'sap.ui.core.routing.Targets')].events[?(@.name == 'titleChanged')].parameters.0"
     },
     "correctjquerysaphistory": {
       "comment": "Makes jquery sap history a namespace, not a class",
@@ -210,11 +199,9 @@
       "jsonpath": "$.symbols[?(@.name == 'jQuery.sap.history')]"
     },
     "correctcomboboxbasedestroyitems": {
-      "comment":
-        "Makes returntype for comboboxbase from combobox to comboboxbase",
+      "comment": "Makes returntype for comboboxbase from combobox to comboboxbase",
       "script": "val.returnValue.type = 'sap.m.ComboBoxBase';",
-      "jsonpath":
-        "$.symbols[?(@.name == 'sap.m.ComboBoxBase')].methods[?(@$.name == 'destroyItems')]"
+      "jsonpath": "$.symbols[?(@.name == 'sap.m.ComboBoxBase')].methods[?(@$.name == 'destroyItems')]"
     },
     "correct sap.ui.core.Popup.Dock type": {
       "comment": "Makes correct enum of namespace",
@@ -223,97 +210,61 @@
     }
   },
   "postProcessing": {
-    "sap/ui/core/BusyIndicator": [
-      {
-        "searchString": ": BusyIndicator",
-        "replacement": ": any",
-        "isRegex": true,
-        "regexFlags": "g"
-      }
-    ],
-    "classes/sap/m/BusyDialog": [
-      {
-        "searchString": "public getTooltip(): BusyDialog;",
-        "replacement": ""
-      }
-    ],
-    "classes/sap/m/ComboBoxBase": [
-      {
-        "searchString": "public destroyItems(): ComboBox;",
-        "replacement": "public destroyItems(): this;"
-      }
-    ],
-    "classes/sap/m/NotificationListItem": [
-      {
+    "sap/ui/core/BusyIndicator": [{
+      "searchString": ": BusyIndicator",
+      "replacement": ": any",
+      "isRegex": true,
+      "regexFlags": "g"
+    }],
+    "modules/sap/m/BusyDialog": [{
+      "searchString": "public getTooltip(): BusyDialog;",
+      "replacement": ""
+    }],
+    "modules/sap/m/ComboBoxBase": [{
+      "searchString": "public destroyItems(): ComboBox;",
+      "replacement": "public destroyItems(): this;"
+    }],
+    "modules/sap/m/NotificationListItem": [{
         "searchString": "public setDatetime(dateTime: {}): this;",
         "replacement": ""
       },
       {
-        "searchString":
-          "public setAuthorPicture(authorPicture: string, suppressInvalidation: boolean): this;",
-        "replacement":
-          "public setAuthorPicture(authorPicture: string, suppressInvalidation?: boolean): this;"
+        "searchString": "public setAuthorPicture(authorPicture: string, suppressInvalidation: boolean): this;",
+        "replacement": "public setAuthorPicture(authorPicture: string, suppressInvalidation?: boolean): this;"
       },
       {
-        "searchString":
-          "public setPriority(priority: string, suppressInvalidation: boolean): this;",
-        "replacement":
-          "public setPriority(priority: string, suppressInvalidation?: boolean): this;"
+        "searchString": "public setPriority(priority: string, suppressInvalidation: boolean): this;",
+        "replacement": "public setPriority(priority: string, suppressInvalidation?: boolean): this;"
       }
     ],
-    "classes/sap/m/selectionDetails": [
+    "modules/sap/m/selectionDetails": [{
+      "searchString": "attachSelectionHandler();",
+      "replacement": "attachSelectionHandler(): any;"
+    }],
+    "modules/sap/ui/model/Model": [{
+        "searchString": "class Model extends MessageProcessor {",
+        "replacement": "class Model<T = any> extends MessageProcessor {"
+      },
       {
-        "searchString": "attachSelectionHandler();",
-        "replacement": "attachSelectionHandler(): any;"
+        "searchString": "public getProperty(sPath: string, oContext: {}): void;",
+        "replacement": "public getOriginalProperty<K extends keyof T>(sPath: K, oContext: {}): T[K];"
+      },
+      {
+        "searchString": "public getOriginalProperty(sPath: string, oContext: {}): any;",
+        "replacement": "public getOriginalProperty<K extends keyof T>(sPath: K, oContext: {}): T[K];"
+      },
+      {
+        "searchString": "public isBindingModeSupported(sMode: sap.ui.model.BindingMode): void;",
+        "replacement": "public isBindingModeSupported(sMode: sap.ui.model.BindingMode): boolean;"
       }
     ],
-    "classes/sap/ui/model/Model": [
-      {
-        "searchString": "export default class Model extends MessageProcessor {",
-        "replacement":
-          "export default class Model<T = any> extends MessageProcessor {"
-      },
-      {
-        "searchString": "(\\W)Model([^\\w\\/\\.'`<])",
-        "replacement": "$1Model<T>$2",
-        "isRegex": true,
-        "regexFlags": "g"
-      },
-      {
-        "searchString":
-          "public getProperty(sPath: string, oContext: {}): void;",
-        "replacement":
-          "public getOriginalProperty<K extends keyof T>(sPath: K, oContext: {}): T[K];"
-      },
-      {
-        "searchString":
-          "public getOriginalProperty(sPath: string, oContext: {}): any;",
-        "replacement":
-          "public getOriginalProperty<K extends keyof T>(sPath: K, oContext: {}): T[K];"
-      },
-      {
-        "searchString":
-          "public isBindingModeSupported(sMode: sap.ui.model.BindingMode): void;",
-        "replacement":
-          "public isBindingModeSupported(sMode: sap.ui.model.BindingMode): boolean;"
-      }
-    ],
-    "classes/sap/ui/base/Event": [
-      {
-        "searchString": "export default class Event extends Object {",
-        "replacement":
-          "export default class Event<Tsource = any, Tparameters = any> extends Object {"
-      },
-      {
-        "searchString": "(\\W)Event([^\\w\\/\\.'`<])",
-        "replacement": "$1Event<Tsource, Tparameters>$2",
-        "isRegex": true,
-        "regexFlags": "g"
+    "modules/sap/ui/base/Event": [{
+        "searchString": "class Event extends Object {",
+        "replacement": "class Event<Tsource = any, Tparameters = any> extends Object {"
       },
       {
         "searchString": "public getParameter(sName: string): any;",
-        "replacement":
-          "public getParameter<K extends keyof Tparameters>(sName: K): Tparameters[K];"
+        "replacement": "public getParameter<K extends keyof Tparameters>(sName: K): Tparameters[K];"
       },
       {
         "searchString": "public getParameters(): any;",
@@ -324,34 +275,26 @@
         "replacement": "public getSource(): Tsource;"
       }
     ],
-    "classes/sap/ui/base/Object": [
-      {
-        "searchString": "public getInterface(): Interface;",
-        "replacement": "public getInterface(): Interface | void | {};"
-      }
-    ],
-    "classes/sap/m/Input": [
-      {
+    "modules/sap/ui/base/Object": [{
+      "searchString": "public getInterface(): Interface;",
+      "replacement": "public getInterface(): Interface | void | {};"
+    }],
+    "modules/sap/m/Input": [{
         "searchString": "public getValue(): this;",
         "replacement": "public getValue(): string;"
       },
       {
-        "searchString":
-          "public setAggregation(sAggregationName: string, oObject: string, bSuppressInvalidate: string): this;",
-        "replacement":
-          "public setAggregation(sAggregationName: string, oObject: {}, bSuppressInvalidate: boolean | undefined): this;"
+        "searchString": "public setAggregation(sAggregationName: string, oObject: string, bSuppressInvalidate: string): this;",
+        "replacement": "public setAggregation(sAggregationName: string, oObject: {}, bSuppressInvalidate: boolean | undefined): this;"
       }
     ],
-    "interfaces/sap/ui/core/library.IProcessableBlobs": [
-      {
-        "searchString": "static (?!extend|getMetadata)",
-        "replacement": "",
-        "isRegex": true,
-        "regexFlags": "g"
-      }
-    ],
-    "classes/jquery.sap.events": [
-      {
+    "interfaces/sap/ui/core/library.IProcessableBlobs": [{
+      "searchString": "static (?!extend|getMetadata)",
+      "replacement": "",
+      "isRegex": true,
+      "regexFlags": "g"
+    }],
+    "classes/jquery.sap.events": [{
         "searchString": "declare namespace jquery.sap.events {",
         "replacement": "declare namespace jQuery {"
       },
@@ -360,8 +303,7 @@
         "replacement": "export class Event {"
       }
     ],
-    "classes/jquery.sap.global.Version": [
-      {
+    "classes/jquery.sap.global.Version": [{
         "searchString": "declare namespace jquery.sap.global {",
         "replacement": "declare namespace jQuery.sap {"
       },
@@ -370,8 +312,7 @@
         "replacement": "export class Version {"
       }
     ],
-    "classes/jquery.sap.global": [
-      {
+    "classes/jquery.sap.global": [{
         "searchString": "declare namespace jquery.sap {",
         "replacement": "declare namespace jQuery.sap.log {"
       },
@@ -380,155 +321,133 @@
         "replacement": "export class Logger {"
       }
     ],
-    "namespaces/jquery.sap.global": [
-      {
-        "searchString": " \\| Control",
-        "replacement": "",
-        "isRegex": true,
-        "regexFlags": "g"
-        }
-    ],
-    "classes/sap/ui/core/routing/Target": [
-      {
+    "namespaces/jquery.sap.global": [{
+      "searchString": " \\| Control",
+      "replacement": "",
+      "isRegex": true,
+      "regexFlags": "g"
+    }],
+    "classes/sap/ui/core/routing/Target": [{
         "searchString": "protected destroy(): this;",
         "replacement": "public destroy(): this;"
       },
       {
-        "searchString":
-          "public constructor(oOptions: {}, oViews: Views, oParent: this);",
-        "replacement":
-          "public constructor(oOptions: {}, oViews: Views, oParent: Target);"
+        "searchString": "public constructor(oOptions: {}, oViews: Views, oParent: this);",
+        "replacement": "public constructor(oOptions: {}, oViews: Views, oParent: Target);"
       }
     ],
-    "classes/sap/ui/commons/DropdownBox": [
-      {
-        "searchString":
-          "protected onAfterRendering(oEvent: jQuery.Event): any;",
-        "replacement": "protected onAfterRendering(oEvent?: jQuery.Event): any;"
-      }
-    ],
-    "classes/sap/m/MultiComboBox": [
-      {
-        "searchString": "public destroyItems(): ComboBox;",
-        "replacement": ""
-      }
-    ],
-    "classes/sap/ui/model/CompositeBinding": [
-      {
+    "classes/sap/ui/commons/DropdownBox": [{
+      "searchString": "protected onAfterRendering(oEvent: jQuery.Event): any;",
+      "replacement": "protected onAfterRendering(oEvent?: jQuery.Event): any;"
+    }],
+    "classes/sap/m/MultiComboBox": [{
+      "searchString": "public destroyItems(): ComboBox;",
+      "replacement": ""
+    }],
+    "classes/sap/ui/model/CompositeBinding": [{
         "searchString": "import Metadata from \"sap/ui/base/Metadata\";",
-        "replacement":
-          "import Metadata from \"sap/ui/base/Metadata\";\nimport Event from \"sap/ui/base/Event\";"
+        "replacement": "import Metadata from \"sap/ui/base/Metadata\";\nimport Event from \"sap/ui/base/Event\";"
       },
       {
         "searchString": "import Metadata from \"sap/ui/base/Metadata\";",
-        "replacement":
-          "import Metadata from \"sap/ui/base/Metadata\";\nimport DataState from 'sap/ui/model/DataState';"
+        "replacement": "import Metadata from \"sap/ui/base/Metadata\";\nimport DataState from 'sap/ui/model/DataState';"
       }
     ],
-    "classes/sap/ui/model/analytics/AnalyticalBinding": [
-      {
+    "classes/sap/ui/model/analytics/AnalyticalBinding": [{
         "searchString": "hasChildren(oContext: Context, mParameters: any)",
         "replacement": "hasChildren(oContext: Context, mParameters?: any)"
       },
       {
         "searchString": "import QueryResult from \"sap/ui/model/analytics/odata4analytics\";",
-          "replacement": "import {QueryResult} from \"sap/ui/model/analytics/odata4analytics\";"
+        "replacement": "import {QueryResult} from \"sap/ui/model/analytics/odata4analytics\";"
       }
     ],
-    "classes/sap/ui/model/odata/ODataMessageParser": [
-      {
-        "searchString":
-          "public parse(oResponse: any, oRequest: any, mGetEntities: any, mChangeEntities: any): any;",
-        "replacement":
-          "public parse(oResponse: any, oRequest: any, mGetEntities: any, mChangeEntities: any): any;\npublic parse(): any;\n"
-      }
-    ],
-    "sap/ui/commons/MessageBox": [
-      {
-        "searchString": "import Control from \"sap/ui/core/Control\";",
-        "replacement": "import Control from \"sap/ui/core/Control\";\nimport { Action } from \"sap/m/MessageBox\";\nimport Icon from \"sap/ui/core/Icon\";"
-      }
-    ],
-    "sap/m/MessageBox": [
-      {
-        "searchString": "import { TextDirection } from \"sap/ui/core/library\";",
-        "replacement": "import { TextDirection } from \"sap/ui/core/library\";\nimport { Action } from \"sap/m/MessageBox\";\nimport Icon from \"sap/ui/core/Icon\";"
-      }
-    ],
-    "interfaces/sap/ui/core/util/XMLPreprocessor.IContext": [
-      {
-        "searchString": "getModel(iPart: number): Model;",
-        "replacement": "getModel(iPart: number): any;"
-      }
-    ],
-    "classes/sap/ui/model/odata/v2/ODataTreeBinding": [
-      {
-        "searchString":
-          "public getNodeContexts(oContext: Context, iStartIndex: number, iLength: number, iThreshold: number): any[];",
-        "replacement":
-          "public getNodeContexts(oContext: Context, iStartIndex: number, iLength: number, iThreshold?: number): any[];"
-      }
-    ],
-    "classes/sap/ui/base/ManagedObject": [
-      {
-        "searchString": "public getModel(sName?: string | any): Model;",
-        "replacement":
-          "public getModel<TModel extends Model>(sName?: string): TModel;"
-      }
-    ],
-    "classes/sap/ui/core/mvc/Controller": [
-      {
-        "searchString": "public byId(sId: string): Element;",
-        "replacement":
-          "public byId<T extends Element = Element>(sId: string): T;"
-      }
-    ],
-    "classes/sap/ui/model/analytics/odata4analytics*": [
-      {
-        "searchString": "export default class ",
-        "replacement": "export class "
-      }
-    ],
-    "classes/sap/m/SelectionDetailsFacade.SelectionDetailsItemFacade": [
-      {
-        "searchString": "export default class ",
-        "replacement": "export class "
-      }
-    ],
-    "classes/sap/ui/core/Configuration.FormatSettings": [
-      {
-        "searchString": "export default class ",
-        "replacement": "export class "
-      }
-    ],
-    "namespaces/jQuery": [
-      {
+    "classes/sap/ui/model/odata/ODataMessageParser": [{
+      "searchString": "public parse(oResponse: any, oRequest: any, mGetEntities: any, mChangeEntities: any): any;",
+      "replacement": "public parse(oResponse: any, oRequest: any, mGetEntities: any, mChangeEntities: any): any;\npublic parse(): any;\n"
+    }],
+    "sap/ui/commons/MessageBox": [{
+      "searchString": "import Control from \"sap/ui/core/Control\";",
+      "replacement": "import Control from \"sap/ui/core/Control\";\nimport { Action } from \"sap/m/MessageBox\";\nimport Icon from \"sap/ui/core/Icon\";"
+    }],
+    "sap/m/MessageBox": [{
+      "searchString": "import { TextDirection } from \"sap/ui/core/library\";",
+      "replacement": "import { TextDirection } from \"sap/ui/core/library\";\nimport { Action } from \"sap/m/MessageBox\";\nimport Icon from \"sap/ui/core/Icon\";"
+    }],
+    "interfaces/sap/ui/core/util/XMLPreprocessor.IContext": [{
+      "searchString": "getModel(iPart: number): Model;",
+      "replacement": "getModel(iPart: number): any;"
+    }],
+    "classes/sap/ui/model/odata/v2/ODataTreeBinding": [{
+      "searchString": "public getNodeContexts(oContext: Context, iStartIndex: number, iLength: number, iThreshold: number): any[];",
+      "replacement": "public getNodeContexts(oContext: Context, iStartIndex: number, iLength: number, iThreshold?: number): any[];"
+    }],
+    "classes/sap/ui/base/ManagedObject": [{
+      "searchString": "public getModel(sName?: string | any): Model;",
+      "replacement": "public getModel<TModel extends Model>(sName?: string): TModel;"
+    }],
+    "classes/sap/ui/core/mvc/Controller": [{
+      "searchString": "public byId(sId: string): Element;",
+      "replacement": "public byId<T extends Element = Element>(sId: string): T;"
+    }],
+    "classes/sap/ui/model/analytics/odata4analytics*": [{
+      "searchString": "export default class ",
+      "replacement": "export class "
+    }],
+    "classes/sap/m/SelectionDetailsFacade.SelectionDetailsItemFacade": [{
+      "searchString": "export default class ",
+      "replacement": "export class "
+    }],
+    "classes/sap/ui/core/Configuration.FormatSettings": [{
+      "searchString": "export default class ",
+      "replacement": "export class "
+    }],
+    "namespaces/jQuery": [{
       "searchString": " \\| Control",
       "replacement": "",
       "isRegex": true,
       "regexFlags": "g"
-      }
-    ],
-    "namespaces/jQuery.sap": [
-      {
+    }],
+    "namespaces/jQuery.sap": [{
       "searchString": " \\| Control",
       "replacement": "",
       "isRegex": true,
       "regexFlags": "g"
-      }
-    ],
-    "namespaces/**/*": [
+    }],
+    "namespaces/**/*": [{
+      "searchString": "(Action|TextDirection|Icon|Dock|Controller|BusyIndicator|Control|Metadata|ValueState|IContext|Context|ValueListType|Component|View|Fragment|Core|HTMLView|JSONView|JSView|Interface|Template|TemplateView|XMLView)",
+      "replacement": "any",
+      "isRegex": true,
+      "regexFlags": "g"
+    }],
+    "namespaces/sap/ui/Global.ui": [{
+      "searchString": "anyany | ",
+      "replacement": ""
+    }],
+    "modules/sap/ui/core/dnd/DragDropInfo": [
       {
-        "searchString": "(Action|TextDirection|Icon|Dock|Controller|BusyIndicator|Control|Metadata|ValueState|IContext|Context|ValueListType|Component|View|Fragment|Core|HTMLView|JSONView|JSView|Interface|Template|TemplateView|XMLView)",
-        "replacement": "any",
+        "searchString": "[^\\.]dnd\\.(\\w+)",
         "isRegex": true,
-        "regexFlags": "g"
+        "regexFlags": "g",
+        "replacement": " $1"
+      },
+      {
+        "searchString": "import DragSession from \"sap/ui/core/dnd/DragAndDrop/DragSession\";",
+        "replacement": ""
+      },
+      {
+        "searchString": "DragSession",
+        "isRegex": true,
+        "regexFlags": "g",
+        "replacement": "any"
       }
     ],
-    "namespaces/sap/ui/Global.ui": [
+    "modules/sap/ui/core/routing/History": [
       {
-        "searchString": "anyany | ",
-        "replacement": ""
+        "searchString": " routing\\.HistoryDirection",
+        "isRegex": true,
+        "regexFlags": "g",
+        "replacement": " HistoryDirection"
       }
     ]
   }

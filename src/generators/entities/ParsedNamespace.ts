@@ -1,11 +1,19 @@
 import { IConfig, IDictionary, ILogDecorator } from '../../types';
 import { ISymbol, IProperty } from '../../UI5DocumentationTypes';
-import { GeneratorBase } from '../GeneratorBase';
+import { ParsedBase } from '../ParsedBase';
 import { ParsedMethod } from './ParsedMethod';
 import { ParsedParameter } from './ParsedParameter'
 import { ParsedField } from './ParsedField';
 
-export class ParsedNamespace extends GeneratorBase {
+export class ParsedNamespace extends ParsedBase {
+    get typings(): string {
+        try {
+            return this.template(this);
+        } catch (error) {
+            this.logger.Error("Handlebars error: " + error.message + "\n" + error.stack);
+            throw error;
+        }
+    }
     appended: boolean = false;
     public methods: ParsedMethod[] = [];
     public fields: ParsedField[] = [];
@@ -28,6 +36,7 @@ export class ParsedNamespace extends GeneratorBase {
     private createNamespaceMethods(namespace: ISymbol): void {
         // let methods: { method: string, description: string }[] = [];
 
+        
         if (namespace.methods) {
             // If methods are static it is a static class
             if (namespace.methods[0].static) {

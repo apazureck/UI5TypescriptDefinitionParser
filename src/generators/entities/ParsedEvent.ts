@@ -5,11 +5,12 @@ import {
   IParameterProperty,
   Visibility
 } from "../../UI5DocumentationTypes";
-import { GeneratorBase } from "../GeneratorBase";
+import { ParsedBase } from "../ParsedBase";
 import { ParsedClass } from "./ParsedClass";
 import { ParsedParameter } from "./ParsedParameter";
 
-export class ParsedEvent extends GeneratorBase {
+export class ParsedEvent extends ParsedBase {
+  get typings(): string { return undefined };
   constructor(
     private wrappedEvent: IEvent,
     private ownerClass: ParsedClass,

@@ -81,7 +81,7 @@ export class Log {
   Error(message: (() => any) | string): void {
     if (this.logLevel <= LogLevel.Error) {
       this.LogMessage(
-        "[ERROR] " + this.getMessageString(message),
+        "[ERROR] " + this.name + ": " + this.getMessageString(message),
         LogLevel.Error
       );
     }

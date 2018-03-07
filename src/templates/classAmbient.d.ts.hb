@@ -1,10 +1,10 @@
-declare namespace {{toNamespace module}} {
+declare namespace {{getNamespace name}} {
 
 {{#if description}}/**
 {{parsedDescription}}
 */
 {{/if}}
-export class {{name}} {{#if baseclass}}extends {{baseclass.name}}{{#ifCond baseclass.name '==' name}}Base{{/ifCond}}{{/if}}{
+export class {{basename}} {{#if baseclass}}extends {{baseclass.name}}{{#ifCond baseclass.name '==' name}}Base{{/ifCond}}{{/if}}{
 
 {{#if constructors.length~}}
 {{#each constructors}}
@@ -17,7 +17,7 @@ export class {{name}} {{#if baseclass}}extends {{baseclass.name}}{{#ifCond basec
         {{#unless @first}} {{/unless}}{{this.name}}: {{this.type}}{{#unless @last}},{{/unless}}
     {{~/each~}}
     {{~/if~}}
-){{#if this.returntype}}: {{this.returntype.type}}{{/if}};
+);
 
 {{/each}}
 {{~/if}}

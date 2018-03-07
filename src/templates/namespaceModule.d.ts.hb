@@ -1,10 +1,4 @@
-declare module "{{module}}" {
-
-    {{#each imports}}
-    {{getImport this}}
-    {{/each}}
-
-    {{#if export}}export namespace {{export}} { {{/if}}
+namespace {{basename}} {
     
     {{#if this.methods.length~}}
     // Methods
@@ -30,9 +24,5 @@ declare module "{{module}}" {
     */
     export const {{this.name}}: {{this.type}};
     {{/each}}
-    {{/if}}
-
-    {{#if export}}
-    }
     {{/if}}
 }

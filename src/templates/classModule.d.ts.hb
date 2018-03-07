@@ -1,30 +1,19 @@
-declare module '{{module}}' {
-{{#each imports~}}
-{{#ifCond ../baseclass.name '!=' this.type.name}}
-{{#ifCond ../name '!=' this.type.name}}
-{{getImport this}}
-{{/ifCond}}
-{{/ifCond}}
-{{~/each}}
 {{#ifCond baseclass.basename '==' basename}}
-import * as base from '{{baseclass.module}}'
-{{else}}
-{{~#if baseclass}}import {{baseclass.basename}}, { I{{baseclass.basename}}Settings } from '{{baseclass.module}}';{{/if}}
+import {{getName basename}}Base from '{{baseclass.module}}'
 {{/ifCond}}
-
-export interface I{{basename}}Settings
-{{~#if baseclass}} extends {{#ifCond baseclass.basename '==' basename}}base.{{/ifCond}}I{{baseclass.basename}}Settings {{/if}}{
-{{#each settingsInterfaceProperties}}
-{{this.name}}?: {{this.type}};
-{{/each}}
-}
-
 {{#if description}}/**
 {{parsedDescription}}
 */
 {{/if}}
-export default class {{basename}} {{#if baseclass}}extends {{#ifCond baseclass.basename '==' basename}}
-base.default
+{{#ifHasNamespace basename}}
+namespace {{getNamespace basename}} {
+{{else}}
+{{#ifHasNamespace export}}
+namespace {{getNamespace export}} {
+{{/ifHasNamespace}}
+{{/ifHasNamespace}}
+class {{getName basename}} {{#if baseclass}}extends {{#ifCond baseclass.basename '==' basename~}}
+{{getName basename}}Base
 {{~else}}
 {{baseclass.basename}}
 {{/ifCond}}
@@ -41,7 +30,7 @@ base.default
         {{#unless @first}} {{/unless}}{{this.name}}{{#if this.optional}}?{{/if}}: {{this.type}}{{#unless @last}},{{/unless}}
     {{~/each~}}
     {{~/if~}}
-){{#if this.returntype}}: {{this.returntype.type}}{{/if}};
+);
 
 {{/each}}
 {{~/if}}
@@ -61,5 +50,11 @@ base.default
 
 {{/each}}
 {{~/if}}
-    }
 }
+{{#ifHasNamespace basename}}
+}
+{{else}}
+{{#ifHasNamespace export}}
+}
+{{/ifHasNamespace}}
+{{/ifHasNamespace}}

@@ -5,14 +5,15 @@ import {
   IReturnValue,
   Visibility
 } from "../../UI5DocumentationTypes";
-import { GeneratorBase } from "../GeneratorBase";
+import { ParsedBase } from "../ParsedBase";
 import { ParsedClass } from "./ParsedClass";
 import { ParsedNamespace } from "./ParsedNamespace";
 import { ParsedParameter } from "./ParsedParameter";
 import * as _ from "lodash";
 import { ParsedEvent } from "./ParsedEvent";
 
-export class ParsedMethod extends GeneratorBase {
+export class ParsedMethod extends ParsedBase {
+  get typings(): string { return undefined };
   overloadedMethod: ParsedMethod;
   parameters: ParsedParameter[] = [];
   stubs: string[];
@@ -76,7 +77,7 @@ export class ParsedMethod extends GeneratorBase {
       for (const param of parameters) {
         ret += `@param {${this.getType(param.type, "static")}} ${
           param.optional ? "[" : ""
-        }${param.name}${param.optional ? "]" : ""} ${param.description}\n`;
+          }${param.name}${param.optional ? "]" : ""} ${param.description}\n`;
       }
     }
 
@@ -196,8 +197,9 @@ export class ParsedMethod extends GeneratorBase {
           )
       );
     }
-    if (suppressReturnValue) {
-    } else this.createReturnType();
+    if (!suppressReturnValue) {
+      this.createReturnType();
+    }
   }
 
   private createReturnType() {

@@ -1,8 +1,8 @@
 import * as events from "events";
 import * as Handlebars from "handlebars";
 import * as hbex from "../../handlebarsExtensions";
-import { GeneratorBase } from "../GeneratorBase";
-import { IConfig, IImport, ILogDecorator, OverloadFlags } from "../../types";
+import { ParsedBase } from "../ParsedBase";
+import { IConfig, IType, ILogDecorator, OverloadFlags } from "../../types";
 import { IParameter, IProperty, ISymbol } from "../../UI5DocumentationTypes";
 import { Log, LogLevel } from "../../log";
 import { ParsedEvent } from "./ParsedEvent";
@@ -19,7 +19,15 @@ interface IClass {
   parsedDescription: string;
 }
 
-export class ParsedClass extends GeneratorBase implements IClass {
+export class ParsedClass extends ParsedBase implements IClass {
+  get typings(): string {
+    try {
+      return this.classTemplate(this);
+  } catch (error) {
+      this.log("Handlebars error: " + error.message + "\n" + error.stack);
+      throw error;
+  }
+  }
   getConfig(): IConfig {
     return this.config;
   }
@@ -53,7 +61,7 @@ export class ParsedClass extends GeneratorBase implements IClass {
     value.childClasses.push(this);
     this._baseclass = value;
   }
-  get extendedClass(): string {
+  get extends(): string {
     return this.symbol.extends;
   }
   methods: ParsedMethod[] = [];
@@ -123,10 +131,6 @@ export class ParsedClass extends GeneratorBase implements IClass {
       if (this.symbol.constructor) {
         this.symbol.constructor.name = "constructor";
         this.symbol.constructor.visibility = "public";
-        if (this.symbol.constructor.parameters[1].name === "mSettings") {
-          this.symbol.constructor.parameters[1].type =
-            "I" + this.symbol.basename + "Settings";
-        }
 
         this.constructors = ParsedMethod.overloadLeadingOptionalParameters(
           this.symbol.constructor,

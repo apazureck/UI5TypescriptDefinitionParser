@@ -17,6 +17,9 @@ import { Log, LogLevel } from "./log";
 import * as ProgressBar from "progress";
 import * as glob from "glob-all";
 import * as jpath from "jsonpath";
+import { ParsedModule } from "./generators/entities/ParsedModule";
+import { ParsedBase } from "./generators/ParsedBase";
+import { ParsedEnum } from "./generators/entities/ParsedEnum";
 
 const startTime = Date.now();
 Log.activate((message, level) => {
@@ -38,7 +41,85 @@ interface IObservedApis {
  * @class Parser
  */
 export class Parser implements ILogDecorator {
-  modularInterfaceTemplate: HandlebarsTemplateDelegate<any>;
+  parseModules(modules: { [modulename: string]: { symbols: ISymbol[], generated: ParsedBase[], module?: ParsedModule } }, config: IConfig): void {
+    
+    for (const mname in this.modules) {
+      if (this.modules.hasOwnProperty(mname)) {
+        const mod = this.modules[mname];
+        const file = path.join(config.outdir, "modules", mname + ".d.ts");
+        if(!fs.existsSync(path.dirname(file))) {
+          MakeDirRecursiveSync(path.dirname(file));
+        }
+        try {
+          fs.writeFileSync(file, mod.module.typings, { encoding: "utf-8"});
+        } catch (error) {
+        }
+      }
+    }
+  }
+  private modules: { [modulename: string]: { symbols: ISymbol[], generated: ParsedBase[], module?: ParsedModule } } = {};
+  getModules(): any {
+    for (const symbolname in this.config.modularTypes) {
+      if (this.config.modularTypes.hasOwnProperty(symbolname)) {
+        const symbol = this.config.modularTypes[symbolname];
+        if (!this.modules[symbol.module]) {
+          this.modules[symbol.module] = {
+            symbols: [],
+            generated: []
+          };
+        }
+        this.modules[symbol.module].symbols.push(symbol);
+      }
+    }
+
+    for (const modname in this.modules) {
+      if (this.modules.hasOwnProperty(modname)) {
+        const mod = this.modules[modname];
+        for (const symbol of mod.symbols) {
+          switch (symbol.kind) {
+            case "namespace":
+              const ns = new ParsedNamespace(
+                symbol, this.config, this, this.config.loadedTemplates.modularNamespace, true);
+              this.allNamespaces[symbol.name] = ns;
+              mod.generated.push(ns);
+              break;
+            case "class":
+              const c = new ParsedClass(
+                symbol,
+                this.config.loadedTemplates.modularClass,
+                this.config,
+                this,
+                false
+              );
+              this.allClasses[c.name] = c;
+              mod.generated.push(c);
+              break;
+            case "enum":
+              const e = new ParsedEnum(
+                this.config,
+                this,
+                symbol,
+                this.config.loadedTemplates.modularEnum
+              );
+              mod.generated.push(e);
+              break;
+            case "interface":
+              const i = new ParsedClass(symbol,
+                this.config.loadedTemplates.modularInterface,
+                this.config,
+                this,
+                false);
+              mod.generated.push(i);
+              break;
+            default:
+              this.logger.Error("Unknown Symbol Kind");
+              break;
+          }
+        }
+        mod.module = new ParsedModule(modname, this.config, mod.generated, this, this.config.loadedTemplates.module);
+      }
+    }
+  }
   allInterfaces: ParsedClass[] = [];
   private config: IConfig;
   private outfolder: string;
@@ -46,62 +127,53 @@ export class Parser implements ILogDecorator {
 
   private currentApi: IApi;
   private logger: Log;
-
-  private ambientInterfaceTemplate: HandlebarsTemplateDelegate;
-
-  private ambientEnumTemplate: HandlebarsTemplateDelegate;
-  private modularEnumTemplate: HandlebarsTemplateDelegate;
-  private allClasses: ParsedClass[] = [];
-  private allNamespaces: ParsedNamespace[] = [];
-
-  private modularClassTemplate: HandlebarsTemplateDelegate;
-  private ambientClassTemplate: HandlebarsTemplateDelegate;
-  private modularNamespaceTemplate: HandlebarsTemplateDelegate;
-
-  private ambientNamespaceTemplate: HandlebarsTemplateDelegate;
+  private allClasses: { [name: string]: ParsedClass } = {};
+  private allNamespaces: { [name: string]: ParsedNamespace } = {};
 
   constructor(private configPath: string) {
     this.config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
     this.logger = new Log("Parser", LogLevel.getValue(this.config.logLevel));
     this.logger.Trace("Started Logger");
-    this.ambientClassTemplate = Handlebars.compile(
+    this.config.loadedTemplates = {} as any;
+    this.config.loadedTemplates.ambientClass = Handlebars.compile(
       fs.readFileSync(this.config.templates.ambientClass, "utf-8"),
       {
         noEscape: true
       }
     );
-    this.ambientEnumTemplate = Handlebars.compile(
+    this.config.loadedTemplates.ambientEnum = Handlebars.compile(
       fs.readFileSync(this.config.templates.ambientEnum, "utf-8"),
       {
         noEscape: true
       }
     );
-    this.modularEnumTemplate = Handlebars.compile(
+    this.config.loadedTemplates.modularEnum = Handlebars.compile(
       fs.readFileSync(this.config.templates.modularEnum, "utf-8"),
       {
         noEscape: true
       }
     );
-    this.modularClassTemplate = Handlebars.compile(
+    this.config.loadedTemplates.modularClass = Handlebars.compile(
       fs.readFileSync(this.config.templates.modularClass, "utf-8"),
       {
         noEscape: true
       }
     );
-    this.ambientInterfaceTemplate = Handlebars.compile(
+    this.config.loadedTemplates.ambientInterface = Handlebars.compile(
       fs.readFileSync(this.config.templates.ambientInterface, "utf-8"),
       { noEscape: true }
     );
-    this.modularInterfaceTemplate = Handlebars.compile(fs.readFileSync(this.config.templates.modularInterface, "utf-8"),
+    this.config.loadedTemplates.modularInterface = Handlebars.compile(fs.readFileSync(this.config.templates.modularInterface, "utf-8"),
       { noEscape: true });
-    this.ambientNamespaceTemplate = Handlebars.compile(
+    this.config.loadedTemplates.ambientNamespace = Handlebars.compile(
       fs.readFileSync(this.config.templates.ambientNamespace, "utf-8"),
       { noEscape: true }
     );
-    this.modularNamespaceTemplate = Handlebars.compile(
+    this.config.loadedTemplates.modularNamespace = Handlebars.compile(
       fs.readFileSync(this.config.templates.modularNamespace, "utf-8"),
       { noEscape: true }
     );
+    this.config.loadedTemplates.module = Handlebars.compile(fs.readFileSync(this.config.templates.module, "utf-8"), { noEscape: true });
   }
 
   async GenerateDeclarations(outfolder?: string): Promise<void> {
@@ -214,29 +286,30 @@ export class Parser implements ILogDecorator {
     this.logger.Info("Creating ambient type map");
     this.createAmbientAndModularDictionary(this.observedAPIs);
 
-    this.parseEnums(this.config);
-
     this.getNamespaces(this.config);
-    this.createNamespaceFiles();
 
     this.logger.Info("Scanning for interfaces");
     this.getInterfaces(this.config);
 
-    this.ParseAllInterfaces(this.allInterfaces);
-
     this.logger.Info("Scanning apis for classes");
     this.getClasses(this.config);
 
+    this.logger.Info("Creating all modules");
+    this.getModules();
+
     this.logger.Info("Postprocessing all found classes");
-    for (const c of this.allClasses) {
-      if (c.extendedClass) {
-        const classmodulename = c.extendedClass.replace(/\./g, "/");
-        try {
-          c.baseclass = this.allClasses
-            .filter((value, index, array) => value.module === classmodulename)
-            .pop();
-        } catch (error) {
-          this.logger.Info("Could not find baseclass for " + c.basename);
+
+    let classcount = 0;
+    for (const cname in this.allClasses) {
+      classcount++;
+      if (this.allClasses.hasOwnProperty(cname)) {
+        const c = this.allClasses[cname];
+        if (c.extends) {
+          try {
+            c.baseclass = this.allClasses[c.extends]
+          } catch (error) {
+            this.logger.Info("Could not find baseclass for " + c.basename);
+          }
         }
       }
     }
@@ -247,7 +320,13 @@ export class Parser implements ILogDecorator {
 
     this.logger.Info("Creating class files");
     console.log();
-    this.ParseAllClasses(this.allClasses);
+
+    // Create files
+    this.ParseAllClasses(this.allClasses, classcount);
+    this.createNamespaceFiles();
+    this.ParseAllInterfaces(this.allInterfaces);
+    this.parseEnums(this.config);
+    this.parseModules(this.modules, this.config);
 
     this.logger.Info("Copying replacement files");
     this.replaceFiles("replacements", this.outfolder);
@@ -328,23 +407,42 @@ export class Parser implements ILogDecorator {
     }
   }
 
+  private addModularSymbol(symbol: ISymbol) {
+    if (this.config.modularTypes[symbol.name]) {
+      this.logger.Error(
+        "Modular Symbol" + symbol.name + " is declared multiple times!"
+      );
+    } else {
+      if (symbol.export === undefined) {
+        symbol.module += "/" + symbol.basename;
+      }
+      this.config.modularTypes[symbol.name] = symbol;
+    }
+  }
+
+  addAmbientSymbol = (symbol: ISymbol) => {
+    if (this.config.ambientTypes[symbol.name]) {
+      this.logger.Error(
+        "Ambient Symbol" + symbol.name + " is declared multiple times!"
+      );
+    } else {
+      this.config.ambientTypes[symbol.name] = symbol;
+    }
+  }
+
   createAmbientDictionaryFromApi(api: IApi) {
     for (const symbol of api.symbols) {
       if (symbol.module.match(/(\w+[\."])+/)) {
-        if (this.config.ambientTypes[symbol.name]) {
-          this.logger.Error(
-            "Ambient Symbol" + symbol.name + " is declared multiple times!"
-          );
+        if (symbol.forceModular) {
+          this.addModularSymbol(symbol);
         } else {
-          this.config.ambientTypes[symbol.name] = symbol;
+          this.addAmbientSymbol(symbol);
         }
       } else if (symbol.module.match(/^(\w+[\/"])+/)) {
-        if (this.config.modularTypes[symbol.name]) {
-          this.logger.Error(
-            "Modular Symbol" + symbol.name + " is declared multiple times!"
-          );
+        if (symbol.forceAmbient) {
+          this.addAmbientSymbol(symbol);
         } else {
-          this.config.modularTypes[symbol.name] = symbol;
+          this.addModularSymbol(symbol);
         }
       } else {
         this.logger.Error("Unknown Symbol type" + symbol.name);
@@ -369,12 +467,12 @@ export class Parser implements ILogDecorator {
 
     for (const typename in config.ambientTypes) {
       const type = config.ambientTypes[typename];
-      this.createEnum(type, info, this.ambientEnumTemplate);
+      this.createEnum(type, info, this.config.loadedTemplates.ambientEnum);
     }
-    for (const typename in config.modularTypes) {
-      const type = config.modularTypes[typename];
-      this.createEnum(type, info, this.modularEnumTemplate)
-    }
+    // for (const typename in config.modularTypes) {
+    //   const type = config.modularTypes[typename];
+    //   this.createEnum(type, info, this.modularEnumTemplate)
+    // }
     return info;
   }
 
@@ -419,12 +517,15 @@ export class Parser implements ILogDecorator {
       info.generatedNamespaceCount++;
     }
 
-    for (const symbolname in config.modularTypes) {
-      const s = config.modularTypes[symbolname];
-      this.pushNamespace(s, info, true);
-      this.pushNamespace(s, info, false);
-      info.generatedNamespaceCount++;
-    }
+    // for (const symbolname in config.modularTypes) {
+    //   const s = config.modularTypes[symbolname];
+    //   if (s.name.replace(/\./g, "/") === s.module) {
+    //     this.pushNamespace(s, info, true);
+    //   } else {
+    //     this.pushNamespace(s, info, false);
+    //   }
+    //   info.generatedNamespaceCount++;
+    // }
 
     return info;
   }
@@ -436,8 +537,9 @@ export class Parser implements ILogDecorator {
   ): ParsedNamespace {
     switch (s.kind) {
       case "namespace":
-        const ns = new ParsedNamespace(s, this.config, this, isModule ? this.modularNamespaceTemplate : this.ambientNamespaceTemplate, isModule);
-        this.allNamespaces.push(ns);
+        const ns = new ParsedNamespace(s, this.config, this, isModule ? this.config.loadedTemplates.modularNamespace : this.config.loadedTemplates.ambientNamespace, isModule);
+
+        this.allNamespaces[ns.name] = ns;
         // Write to file
         // TODO: Create folder structure
         // fs.writeFileSync(path.join(this.outfolder, "classes", s.name + ".d.ts"), cstring, 'utf-8');
@@ -452,309 +554,327 @@ export class Parser implements ILogDecorator {
   private createNamespaceFiles() {
     this.logger.Info("Creating Namespace files");
     // Make namespace files
-    for (const ns of this.allNamespaces) {
-      let filepath = path.join(
-        this.outfolder,
-        ns.isModule ? "" : "namespaces",
-        ns.module + ".d.ts"
-      );
-      this.log("Creating namespace " + filepath);
-      try {
-        // const nsstring = ns.toString();
-        MakeDirRecursiveSync(path.dirname(filepath));
+    for (const nsname in this.allNamespaces) {
+      if (this.allNamespaces.hasOwnProperty(nsname)) {
+        const ns = this.allNamespaces[nsname];
+        if(ns.isModule) {
+          continue;
+        }
+        let filepath = path.join(
+          this.outfolder,
+          ns.isModule ? "" : "namespaces",
+          ns.module + ".d.ts"
+        );
+        this.log("Creating namespace " + filepath);
         try {
-          if (fs.existsSync(filepath)) {
-            filepath = path.join(
-              this.outfolder,
-              ns.isModule ? "" : "namespaces",
-              ns.module + "." +
-              ns.basename + ".d.ts"
+          // const nsstring = ns.toString();
+          MakeDirRecursiveSync(path.dirname(filepath));
+          try {
+            if (fs.existsSync(filepath)) {
+              filepath = path.join(
+                this.outfolder,
+                ns.isModule ? "" : "namespaces",
+                ns.module + "." +
+                ns.basename + ".d.ts"
+              );
+              ns.appended = true;
+              fs.appendFileSync(filepath, ns.parse(), { encoding: "utf-8" });
+            } else {
+              fs.writeFileSync(filepath, ns.parse(), { encoding: "utf-8" });
+            }
+          } catch (error) {
+            console.error(
+              "Error writing file " + filepath + ": " + error.toString()
             );
-            ns.appended = true;
-            fs.appendFileSync(filepath, ns.parse(), { encoding: "utf-8" });
+          }
+        } catch (error) {
+          console.error(
+            "Error creating folder for file " + filepath + ": " + error.toString()
+          );
+        }
+      }
+    }
+  }
+
+  // 5th step: get all interfaces (all ambient)
+
+  private getInterfaces(config: IConfig): { generatedClassCount: number } {
+    let info = { generatedClassCount: 0 };
+
+    if (!fs.existsSync(this.outfolder)) {
+      MakeDirRecursiveSync(this.outfolder);
+    }
+    if (!fs.existsSync(path.join(this.outfolder, "interfaces"))) {
+      MakeDirRecursiveSync(path.join(this.outfolder, "interfaces"));
+    }
+
+    for (const symbolname in config.ambientTypes) {
+      const s = config.ambientTypes[symbolname];
+      this.createInterface(s, info, this.config.loadedTemplates.ambientInterface);
+    }
+
+    // for (const symbolname in config.modularTypes) {
+    //   const s = config.modularTypes[symbolname];
+    //   if (s.forceAmbient === true) {
+    //     this.createInterface(s, info, this.ambientInterfaceTemplate);
+    //   }
+    //   this.createInterface(s, info, this.modularInterfaceTemplate);
+    // }
+
+    this.log("Created " + info.generatedClassCount);
+    return info;
+  }
+
+  private createInterface(s: ISymbol, info: { generatedClassCount: number }, template: HandlebarsTemplateDelegate) {
+    switch (s.kind) {
+      case "interface":
+        const i = new ParsedClass(s, template, this.config, this);
+        this.allInterfaces.push(i);
+        info.generatedClassCount++;
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  private ParseAllInterfaces(allInterfaces: ParsedClass[]): void {
+    const classcount = allInterfaces.length;
+    let generatedclasses = 0;
+    for (const c of allInterfaces) {
+      this.ParseInterface(c);
+      generatedclasses++;
+    }
+  }
+
+  private ParseInterface(c: ParsedClass): void {
+    const filepath = path.join(
+      this.outfolder,
+      "interfaces",
+      c.module + "." + c.basename + ".d.ts"
+    );
+    this.log("Creating interface " + filepath);
+    try {
+      MakeDirRecursiveSync(path.dirname(filepath));
+      try {
+        if (fs.existsSync(filepath)) {
+          this.logger.Error("File already exists");
         } else {
-          fs.writeFileSync(filepath, ns.parse(), { encoding: "utf-8" });
+          fs.writeFileSync(filepath, c.toString(), { encoding: "utf-8" });
         }
       } catch (error) {
         console.error(
           "Error writing file " + filepath + ": " + error.toString()
         );
       }
-    } catch (error) {
+    } catch (err) {
       console.error(
-        "Error creating folder for file " + filepath + ": " + error.toString()
+        "Error creating folder for file " + filepath + ": " + err.toString()
       );
     }
-  }
-}
-
-  // 5th step: get all interfaces (all ambient)
-
-  private getInterfaces(config: IConfig): { generatedClassCount: number } {
-  let info = { generatedClassCount: 0 };
-
-  if (!fs.existsSync(this.outfolder)) {
-    MakeDirRecursiveSync(this.outfolder);
-  }
-  if (!fs.existsSync(path.join(this.outfolder, "interfaces"))) {
-    MakeDirRecursiveSync(path.join(this.outfolder, "interfaces"));
-  }
-
-  for (const symbolname in config.ambientTypes) {
-    const s = config.ambientTypes[symbolname];
-    this.createInterface(s, info, this.ambientInterfaceTemplate);
-  }
-
-  for (const symbolname in config.modularTypes) {
-    const s = config.modularTypes[symbolname];
-    this.createInterface(s, info, this.modularInterfaceTemplate);
-  }
-
-  this.log("Created " + info.generatedClassCount);
-  return info;
-}
-
-  private createInterface(s: ISymbol, info: { generatedClassCount: number }, template: HandlebarsTemplateDelegate) {
-  switch (s.kind) {
-    case "interface":
-      const i = new ParsedClass(s, template, this.config, this);
-      this.allInterfaces.push(i);
-      info.generatedClassCount++;
-      return true;
-    default:
-      return false;
-  }
-}
-
-  private ParseAllInterfaces(allInterfaces: ParsedClass[]): void {
-  const classcount = allInterfaces.length;
-  let generatedclasses = 0;
-  for(const c of allInterfaces) {
-    this.ParseInterface(c);
-    generatedclasses++;
-  }
-}
-
-  private ParseInterface(c: ParsedClass): void {
-  const filepath = path.join(
-    this.outfolder,
-    "interfaces",
-    c.module + "." + c.basename + ".d.ts"
-  );
-  this.log("Creating interface " + filepath);
-  try {
-    MakeDirRecursiveSync(path.dirname(filepath));
-  try {
-    if(fs.existsSync(filepath)) {
-  this.logger.Error("File already exists");
-} else {
-  fs.writeFileSync(filepath, c.toString(), { encoding: "utf-8" });
-}
-      } catch (error) {
-  console.error(
-    "Error writing file " + filepath + ": " + error.toString()
-  );
-}
-    } catch (err) {
-  console.error(
-    "Error creating folder for file " + filepath + ": " + err.toString()
-  );
-}
   }
 
   // 6th step: parse all classes
 
-  private ParseAllClasses(allClasses: ParsedClass[]): void {
-  let bar = createNewProgressBar("Creating class files", allClasses.length);
-  const classcount = allClasses.length;
-  let generatedclasses = 0;
-  for(const c of allClasses) {
-    bar.tick();
-    this.ParseClass(c);
-    generatedclasses++;
+  private ParseAllClasses(allClasses: { [name: string]: ParsedClass }, classcount: number): void {
+    let bar = createNewProgressBar("Creating class files", classcount);
+    let generatedclasses = 0;
+    for (const cname in allClasses) {
+      if (allClasses.hasOwnProperty(cname)) {
+        const c = allClasses[cname];
+        bar.tick();
+        if(this.config.ambientTypes[c.name])
+          this.ParseClass(c);
+        generatedclasses++;
+      }
+    }
   }
-}
 
   private ParseClass(c: ParsedClass): void {
-  let filepath = path.join(this.outfolder, "classes", c.module + ".d.ts");
-  if(fs.existsSync(filepath)) {
-  filepath = path.join(
-    this.outfolder,
-    "classes",
-    c.module + "." + c.basename + ".d.ts"
-  );
-}
-this.log("Creating class " + filepath);
-try {
-  MakeDirRecursiveSync(path.dirname(filepath));
-  try {
-    fs.writeFileSync(filepath, c.toString(), { encoding: "utf-8" });
-  } catch (error) {
-    console.error(
-      "Error writing file " + filepath + ": " + error.toString()
-    );
-  }
-} catch (err) {
-  console.error(
-    "Error creating folder for file " + filepath + ": " + err.toString()
-  );
-}
+    let filepath = path.join(this.outfolder, "classes", c.module + ".d.ts");
+    if (fs.existsSync(filepath)) {
+      filepath = path.join(
+        this.outfolder,
+        "classes",
+        c.module + "." + c.basename + ".d.ts"
+      );
+    }
+    this.log("Creating class " + filepath);
+    try {
+      MakeDirRecursiveSync(path.dirname(filepath));
+      try {
+        fs.writeFileSync(filepath, c.toString(), { encoding: "utf-8" });
+      } catch (error) {
+        console.error(
+          "Error writing file " + filepath + ": " + error.toString()
+        );
+      }
+    } catch (err) {
+      console.error(
+        "Error creating folder for file " + filepath + ": " + err.toString()
+      );
+    }
   }
 
   private CreateClassOverloads() {
-  const baseclasses = this.allClasses.filter(
-    (value, index, array) => !value.baseclass
-  );
-  this.logger.Info("Pushing overloads for classes.");
-  var bar = createNewProgressBar("Pushing overloads", baseclasses.length);
-  for (const bc of baseclasses) {
-    bar.tick();
-    bc.pushOverloads();
+    const baseclasses: ParsedClass[] = [];
+    for (const cname in this.allClasses) {
+      if (this.allClasses.hasOwnProperty(cname)) {
+        const c = this.allClasses[cname];
+        if (!c.baseclass) {
+          baseclasses.push(c);
+        }
+      }
+    }
+
+    this.logger.Info("Pushing overloads for classes.");
+    var bar = createNewProgressBar("Pushing overloads", baseclasses.length);
+    for (const bc of baseclasses) {
+      bar.tick();
+      bc.pushOverloads();
+    }
+    this.logger.Info("Overloads done");
   }
-  this.logger.Info("Overloads done");
-}
 
   private async getClasses(
-  config: IConfig
-): Promise < { generatedClassCount: number } > {
-  let info = { generatedClassCount: 0 };
+    config: IConfig
+  ): Promise<{ generatedClassCount: number }> {
+    let info = { generatedClassCount: 0 };
 
-  if(!fs.existsSync(this.outfolder)) {
-  await MakeDirRecursiveSync(this.outfolder);
-}
+    if (!fs.existsSync(this.outfolder)) {
+      await MakeDirRecursiveSync(this.outfolder);
+    }
 
-for (const symbolname in config.ambientTypes) {
-  const s = config.ambientTypes[symbolname];
-  this.pushClass(s, info, true);
-}
+    for (const symbolname in config.ambientTypes) {
+      const s = config.ambientTypes[symbolname];
+      this.pushClass(s, info, true);
+    }
 
-for (const symbolname in config.modularTypes) {
-  const s = config.modularTypes[symbolname];
-  this.pushClass(s, info);
-}
-this.log("Created " + info.generatedClassCount);
-return info;
+    // for (const symbolname in config.modularTypes) {
+    //   const s = config.modularTypes[symbolname];
+    //   this.pushClass(s, info);
+    // }
+    this.log("Created " + info.generatedClassCount);
+    return info;
   }
 
   private pushClass(
-  s: ISymbol,
-  info: { generatedClassCount: number },
-  isAmbient ?: boolean
-) {
-  switch (s.kind) {
-    case "class":
-      this.allClasses.push(
-        new ParsedClass(
-          s,
-          isAmbient ? this.ambientClassTemplate : this.modularClassTemplate,
-          this.config,
-          this,
-          isAmbient
-        )
-      );
-      info.generatedClassCount++;
-      break;
-    default:
+    s: ISymbol,
+    info: { generatedClassCount: number },
+    isAmbient?: boolean
+  ) {
+    switch (s.kind) {
+      case "class":
+        this.allClasses[s.name] =
+          new ParsedClass(
+            s,
+            isAmbient ? this.config.loadedTemplates.ambientClass : this.config.loadedTemplates.modularClass,
+            this.config,
+            this,
+            isAmbient
+          );
+        info.generatedClassCount++;
+        break;
+      default:
+    }
   }
-}
 
   // 7th step: Do post processing
 
   private escapeRegExp(str: string): string {
-  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
-}
+    return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&");
+  }
 
   private doFilePostProcessingReplacements(config: IConfig): void {
-  for(const moduleName in config.postProcessing) {
-  const files = glob.sync(
-    path.join(this.outfolder, moduleName + ".d.ts")
-  ) as string[];
-  const postProcessor = config.postProcessing[moduleName];
-  for (const file of files) {
-    try {
-      this.postProcessFile(file, postProcessor);
-    } catch (error) {
-      this.logger.Error(
-        "Error occurred during postprocessing " +
-        file +
-        " with post processor " +
-        moduleName +
-        ": " +
-        JSON.stringify(error)
-      );
+    for (const moduleName in config.postProcessing) {
+      const files = glob.sync(
+        path.join(this.outfolder, moduleName + ".d.ts")
+      ) as string[];
+      const postProcessor = config.postProcessing[moduleName];
+      for (const file of files) {
+        try {
+          this.postProcessFile(file, postProcessor);
+        } catch (error) {
+          this.logger.Error(
+            "Error occurred during postprocessing " +
+            file +
+            " with post processor " +
+            moduleName +
+            ": " +
+            JSON.stringify(error)
+          );
+        }
+      }
     }
-  }
-}
   }
 
   private postProcessFile(
-  fullFilePath: string,
-  postProcessor: IPostProcessor[]
-): void {
-  let content = fs.readFileSync(fullFilePath, "utf-8");
-  for(const replacer of postProcessor) {
-    const replaceregex = replacer.isRegex
-      ? new RegExp(replacer.searchString, replacer.regexFlags)
-      : new RegExp(this.escapeRegExp(replacer.searchString), "g");
-    content = content.replace(replaceregex, replacer.replacement);
-  }
+    fullFilePath: string,
+    postProcessor: IPostProcessor[]
+  ): void {
+    let content = fs.readFileSync(fullFilePath, "utf-8");
+    for (const replacer of postProcessor) {
+      const replaceregex = replacer.isRegex
+        ? new RegExp(replacer.searchString, replacer.regexFlags)
+        : new RegExp(this.escapeRegExp(replacer.searchString), "g");
+      content = content.replace(replaceregex, replacer.replacement);
+    }
     fs.writeFileSync(fullFilePath, content);
-}
+  }
 
-async formatAllFiles(): Promise < void> {
-  return new Promise<void>((resolve, reject) => {
-    gulp
-      .src(this.outfolder + "/**/*.ts")
-      .pipe(gulptsf({}))
-      .pipe(gulp.dest(this.outfolder))
-      .on("end", () => resolve())
-      .on("error", () => reject());
-  });
-}
+  async formatAllFiles(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      gulp
+        .src(this.outfolder + "/**/*.ts")
+        .pipe(gulptsf({}))
+        .pipe(gulp.dest(this.outfolder))
+        .on("end", () => resolve())
+        .on("error", () => reject());
+    });
+  }
 
   private replaceFiles(sourcePath: string, outPath: string) {
-  if (fs.existsSync(sourcePath))
-    ncp.ncp(sourcePath, outPath, error => {
-      if (error) {
-        console.error("Could not copy: " + error.toString());
-      }
-    });
-}
+    if (fs.existsSync(sourcePath))
+      ncp.ncp(sourcePath, outPath, error => {
+        if (error) {
+          console.error("Could not copy: " + error.toString());
+        }
+      });
+  }
 
   private generateSubbedTypeFile(filename: string): void {
-  fs.writeFileSync(
-    path.join(this.outfolder, filename),
-    this.getSubstitutedTypes(),
-    { encoding: "utf-8" }
-  );
-}
+    fs.writeFileSync(
+      path.join(this.outfolder, filename),
+      this.getSubstitutedTypes(),
+      { encoding: "utf-8" }
+    );
+  }
 
   private getSubstitutedTypes(): string {
-  let types: string[] = [];
-  for (const tkey in this.config.substitutedTypes) {
-    if (tkey) {
-      types.push(this.config.substitutedTypes[tkey]);
+    let types: string[] = [];
+    for (const tkey in this.config.substitutedTypes) {
+      if (tkey) {
+        types.push(this.config.substitutedTypes[tkey]);
+      }
+    }
+    return types.join("\n");
+  }
+
+  log(message: string, sourceStack?: string) {
+    sourceStack = sourceStack || "";
+
+    if (this.currentApi)
+      this.logger.Debug(
+        "Library '" +
+        this.currentApi.library +
+        "' -> " +
+        sourceStack +
+        ": " +
+        message
+      );
+    else {
+      this.logger.Debug(sourceStack + ": " + message);
     }
   }
-  return types.join("\n");
-}
-
-log(message: string, sourceStack ?: string) {
-  sourceStack = sourceStack || "";
-
-  if (this.currentApi)
-    this.logger.Debug(
-      "Library '" +
-      this.currentApi.library +
-      "' -> " +
-      sourceStack +
-      ": " +
-      message
-    );
-  else {
-    this.logger.Debug(sourceStack + ": " + message);
-  }
-}
 }
 
 function MakeDirRecursiveSync(dirpath): void {

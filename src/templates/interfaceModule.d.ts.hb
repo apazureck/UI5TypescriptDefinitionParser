@@ -1,13 +1,15 @@
-declare module '{{module}}' {
-    {{#each imports}}
-    {{getImport this}}
-    {{/each}}
-
+{{#ifHasNamespace basename}}
+namespace {{getNamespace basename}} {
+{{else}}
+{{#ifHasNamespace export}}
+namespace {{getNamespace export}} {
+{{/ifHasNamespace}}
+{{/ifHasNamespace}}
 {{#if description}}/**
 {{parsedDescription}}
 */
 {{/if}}
-export interface {{basename}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}{
+interface {{getName basename}} {
 
 {{#if events.length}}
     {{#each events}}
@@ -39,5 +41,12 @@ export interface {{basename}} {{#if baseclass}}extends {{baseclass.name}}{{/if}}
 
 {{/each}}
 {{~/if}}
-    }
 }
+
+{{#ifHasNamespace basename}}
+}
+{{else}}
+{{#ifHasNamespace export}}
+}
+{{/ifHasNamespace}}
+{{/ifHasNamespace}}

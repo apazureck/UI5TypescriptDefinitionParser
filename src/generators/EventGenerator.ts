@@ -1,7 +1,8 @@
-import { GeneratorBase } from './GeneratorBase';
+import { ParsedBase } from './ParsedBase';
 import { IConfig, ILogDecorator } from '../types';
 import { IEvent, IParameter, IParameterProperty } from '../UI5DocumentationTypes';
-export class EventGenerator extends GeneratorBase {
+export class EventGenerator extends ParsedBase {
+    get typings(): string { return undefined };
     currentEvent: IEvent;
     constructor(config: IConfig, addImport: (type: string) => string, private decorated: ILogDecorator) {
         super(config);

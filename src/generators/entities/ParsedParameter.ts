@@ -1,9 +1,10 @@
 import { IConfig, ILogDecorator } from "../../types";
 import { IParameter, IParameterProperty } from "../../UI5DocumentationTypes";
-import { GeneratorBase } from "../GeneratorBase";
 import { ParsedClass } from "./ParsedClass";
+import { ParsedBase } from "../ParsedBase";
 
-export class ParsedParameter extends GeneratorBase {
+export class ParsedParameter extends ParsedBase {
+  get typings(): string { return undefined };
   private customType = false;
   private hasCustomEventHandler = false;
 

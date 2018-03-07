@@ -1,4 +1,4 @@
-import { IConfig, ILogDecorator, IImport } from "../types";
+import { IConfig, ILogDecorator, IType } from "../types";
 import * as Handlebars from "handlebars";
 import * as htmltomd from "html-to-markdown";
 import * as jsdoc2md from "jsdoc-to-markdown";
@@ -12,9 +12,7 @@ htmltomd.use((html: string) => {
   return html.replace(/(<\/br>|<br\/>)/g, "\n");
 });
 
-let logger: Log;
-
-export abstract class GeneratorBase implements ILogDecorator {
+export abstract class ParsedBase implements ILogDecorator {
   protected readonly typeSeparators = /[\.\/]/g;
   protected readonly tsBaseTypes = {
     any: "any",
@@ -36,23 +34,25 @@ export abstract class GeneratorBase implements ILogDecorator {
     return this.symbol.export;
   }
 
+  protected logger: Log;
+
   constructor(protected readonly config: IConfig) {
-    if (!logger) {
-      logger = new Log("Parser", LogLevel.getValue(this.config.logLevel));
+    if (!this.logger) {
+      this.logger = new Log(this.constructor.name, LogLevel.getValue(this.config.logLevel));
     }
   }
 
-  public get Imports(): IImport[] {
+  public get Imports(): IType[] {
     const impa = [];
     for (const importkey in this.imports) {
       if (importkey) {
         impa.push(this.imports[importkey]);
       }
-      return impa;
     }
+    return impa;
   }
-  private imports: { [key: string]: IImport } = {};
-  
+  protected imports: { [key: string]: IType } = {};
+
   protected addTabs(input: string, tabsct: number, separator?: string): string {
     const tabs = Array(tabsct + 1).join(separator || "\t");
     return tabs + input.split("\n").join("\n" + tabs);
@@ -61,6 +61,8 @@ export abstract class GeneratorBase implements ILogDecorator {
   protected styleJsDoc(text: string): string {
     return styleJsDoc(text);
   }
+
+  abstract get typings(): string;
 
   get namespace(): string {
     const ret = this.symbol.name.split(".");
@@ -77,7 +79,7 @@ export abstract class GeneratorBase implements ILogDecorator {
   }
   protected isAmbient?: boolean;
 
-  protected getType(originType: string, context?: "static", complexOut?: { restype: string, origintype: string}[]): string {
+  protected getType(originType: string, context?: "static", complexOut?: { restype: string, origintype: string }[]): string {
     if (!originType) {
       return "any";
     }
@@ -90,9 +92,9 @@ export abstract class GeneratorBase implements ILogDecorator {
         const oldtype = type;
         const entry = this.config.typeMap[type];
         this.log("Replaced: Type '" + oldtype + "' => Type '" + type + "'");
-        if(typeof entry !== "string") {
+        if (typeof entry !== "string") {
           type = (entry as any).replacement;
-          if((entry as any).return) {
+          if ((entry as any).return) {
             ret.push(type);
             continue;
           }
@@ -108,7 +110,7 @@ export abstract class GeneratorBase implements ILogDecorator {
 
       const curtype: { restype?: string, origintype?: string } = {};
 
-      if(complexOut) {
+      if (complexOut) {
         curtype.origintype = type;
       }
 
@@ -116,7 +118,7 @@ export abstract class GeneratorBase implements ILogDecorator {
         ret.push(
           isArray ? this.tsBaseTypes[type] + "[]" : this.tsBaseTypes[type]
         );
-        if(complexOut) {
+        if (complexOut) {
           curtype.restype = this.tsBaseTypes[type];
           complexOut.push(curtype as any);
         }
@@ -125,7 +127,7 @@ export abstract class GeneratorBase implements ILogDecorator {
 
       if (this.config.substitutedTypes.hasOwnProperty(type)) {
         ret.push(isArray ? type + "[]" : type);
-        if(complexOut) {
+        if (complexOut) {
           curtype.restype = type;
           complexOut.push(curtype as any);
         }
@@ -134,7 +136,7 @@ export abstract class GeneratorBase implements ILogDecorator {
 
       if (this.config.ambientTypes[type]) {
         ret.push(isArray ? type + "[]" : type);
-        if(complexOut) {
+        if (complexOut) {
           curtype.restype = type;
           complexOut.push(curtype as any);
         }
@@ -142,10 +144,10 @@ export abstract class GeneratorBase implements ILogDecorator {
         let alias = this.addImport(type, context);
         if (alias)
           ret.push(isArray ? (alias + "[]") : alias);
-          if(complexOut) {
-            curtype.restype = alias;
-            complexOut.push(curtype as any);
-          }
+        if (complexOut) {
+          curtype.restype = alias;
+          complexOut.push(curtype as any);
+        }
       }
     }
     return ret.join("|");
@@ -174,7 +176,7 @@ export abstract class GeneratorBase implements ILogDecorator {
    * Adds an import. Returns the alias name if types should have the same type name.
    *
    * @protected
-   * @memberof ParsedClass
+   * @memberof GeneratorBase
    */
   protected onAddImport = (typeName: string, context?: "static"): string => {
     if (!typeName) {
@@ -198,6 +200,9 @@ export abstract class GeneratorBase implements ILogDecorator {
     }
 
     if (this.name === typeName) {
+      if (this.constructor.name === "ParsedNamespace") {
+        return "typeof " + (this.isAmbient ? this.name : this.basename);
+      }
       return context === "static"
         ? this.isAmbient ? this.name : this.basename
         : "this";
@@ -237,6 +242,20 @@ export abstract class GeneratorBase implements ILogDecorator {
             }
           }
         }
+
+        // Check if type is in a namespace of local module
+        if (this.module === newmodulartype.module) {
+          if (this.constructor.name === "ParsedNamespace") {
+
+          } else if (this.constructor.name === "ParsedClass") {
+            // Check if this is the default export
+            if(this.export === "") {
+              return this.basename + "." + typeName.split(".").pop();
+            }
+          }
+        }
+
+        // Import new type
         this.imports[typeName] = {
           type: newmodulartype,
           alias:
@@ -244,12 +263,13 @@ export abstract class GeneratorBase implements ILogDecorator {
               ? newmodulartype.name.replace(/\./g, "_")
               : undefined
         };
+
         return this.imports[typeName].alias || this.imports[typeName].type.basename;
       }
     } catch (error) {
-      logger.Error(
+      this.logger.Error(
         `Could not get type for ${typeName}, returning any type : ${
-          error.message
+        error.message
         }`
       );
       return "any";

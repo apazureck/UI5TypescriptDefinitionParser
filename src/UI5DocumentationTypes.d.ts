@@ -4,7 +4,7 @@ export interface IApi {
     symbols: ISymbol[];
 }
 
-export type Kind = "namespace" | "class" | "enum" | "interface";
+export type Kind = "namespace" | "class" | "enum" | "interface" | "module";
 export type Visibility = "public" | "protected" | "private";
 
 export type StaticType = "string";
@@ -12,6 +12,8 @@ export type StaticType = "string";
 export type Cardinality = "0..n";
 
 export interface ISymbol {
+    forceAmbient?: boolean;
+    forceModular?: boolean;
     kind: Kind;
     name: string;
     basename: string;

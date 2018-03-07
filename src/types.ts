@@ -5,13 +5,25 @@ import { LogLevel } from "./log";
 export interface IConfig {
   templates: {
     ambientInterface: string;
-    modularInterface: string
-    ambientClass: string,
-    modularClass: string,
-    ambientEnum: string;
-    modularEnum: string;
+    modularInterface: string;
+    ambientClass:     string;
+    modularClass:     string;
+    ambientEnum:      string;
+    modularEnum:      string;
     modularNamespace: string;
     ambientNamespace: string;
+    module:           string;
+  },
+  loadedTemplates: {
+      ambientInterface: HandlebarsTemplateDelegate;
+      modularInterface: HandlebarsTemplateDelegate;
+      ambientClass:     HandlebarsTemplateDelegate;
+      modularClass:     HandlebarsTemplateDelegate,
+      ambientEnum:      HandlebarsTemplateDelegate;
+      modularEnum:      HandlebarsTemplateDelegate;
+      modularNamespace: HandlebarsTemplateDelegate;
+      ambientNamespace: HandlebarsTemplateDelegate;
+      module:           HandlebarsTemplateDelegate;
   }
   outdir: string,
   preProcessing: {
@@ -83,9 +95,10 @@ export interface ILogDecorator {
   log(message: string, sourceStack?: string): void;
 }
 
-export interface IImport {
+export interface IType {
   type: ISymbol
   alias?: string;
+  importedFromNamespace?: string;
 }
 
 export enum OverloadFlags {

@@ -35,6 +35,10 @@
         "modularInterface": {
           "type": "string",
           "description": "Template for modular interfaces"
+        },
+        "module": {
+          "type": "string",
+          "description": "Template for modular interfaces"
         }
       },
       "required": [
@@ -45,7 +49,8 @@
         "ambientEnum",
         "modularEnum",
         "ambientNamespace",
-        "modularNamespace"
+        "modularNamespace",
+        "module"
       ]
     },
     "connection": {
