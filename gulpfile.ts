@@ -4,7 +4,9 @@ import * as del from "gulp-clean";
 import { Parser } from "./src/Parser";
 import * as fs from "fs";
 import * as debug from "gulp-debug";
-import * as plumber from "gulp-plumber"
+import * as plumber from "gulp-plumber";
+import * as path from 'path';
+import * as gutil from 'gulp-util'
 
 @Gulpclass()
 export class Gulpfile {
@@ -19,6 +21,26 @@ export class Gulpfile {
     return gulp.src(["../src/templates/**.hb"]).pipe(gulp.dest("templates"));
   }
 
+  @Task()
+  getGlobalModules() {
+    const modules: string[] = [];
+    this.getModules("declarations/modules", "sap/ui/Global/ui.d.ts", modules);
+    gutil.log(modules);
+  }
+
+  private getModules(basedir: string, file: string, modules: string[]): void {
+    const text = fs.readFileSync(path.join(basedir, file), "utf-8");
+    const regex = /import \w+ from "([\w\/]+)";/g
+    let match: RegExpMatchArray;
+    while (match = regex.exec(text)) {
+      const modulename = match[1]
+      if (!modules.some(x => x === modulename)) {
+        modules.push(modulename);
+        this.getModules(basedir, modulename + ".d.ts", modules);
+      }
+    }
+  }
+
   @SequenceTask()
   default() {
     // because this task has "default" name it will be run as default gulp task
@@ -28,13 +50,16 @@ export class Gulpfile {
       "copyHandlebarsTemplates",
       "replaceFiles",
       "runTest",
-      ["copyDeclarationsToTestFolder", "copyDeclarationsToExampleProject"]
+      [
+        // "copyDeclarationsToTestFolder",
+        "copyDeclarationsToExampleProject"
+      ]
     ];
   }
-  
+
   @Task()
   deleteDeclarations() {
-      return gulp.src(["declarations", "test/declarations"], { read: false})
+    return gulp.src(["declarations", "test/declarations"], { read: false })
       .pipe(del());
   }
 

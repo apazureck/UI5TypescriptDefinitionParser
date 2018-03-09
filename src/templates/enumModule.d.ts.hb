@@ -1,14 +1,12 @@
 /** 
 {{documentThis description}} 
 */
-{{#ifHasNamespace basename}}
-namespace {{getNamespace basename}} {
-{{else}}
-{{#ifHasNamespace export}}
-namespace {{getNamespace export}} {
+{{#ifHasNamespace basename}}{{#ifCond export '!=' undefined}}export{{/ifCond}} namespace {{getNamespace basename}} { {{else}}
+{{#ifHasNamespace export}}{{#ifCond export '!=' undefined}}export{{/ifCond}} namespace {{getNamespace export}} { {{/ifHasNamespace}}
 {{/ifHasNamespace}}
-{{/ifHasNamespace}}
-enum {{getName basename}} {
+{{#unlessHasNamespace export}}{{#ifCond export '!=' undefined}}export{{/ifCond}}{{#ifCond export '==' ''}} default {{basename}};
+{{/ifCond}}{{else}}{{#unlessHasNamespace basename}}{{#ifCond export '!=' undefined}}export{{/ifCond}}{{#ifCond export '==' ''}} default {{basename}};
+{{/ifCond}}{{else}}export{{/unlessHasNamespace}}{{/unlessHasNamespace}} enum {{getName basename}} {
 {{#each this.properties}}
 {{this.name}} = "{{this.name}}", 
 {{/each}} }

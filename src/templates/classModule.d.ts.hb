@@ -1,26 +1,29 @@
-{{#ifCond baseclass.basename '==' basename}}
+{{#unless baseclass.isAmbient}}{{#ifCond baseclass.basename '==' basename}}
 import {{getName basename}}Base from '{{baseclass.module}}'
-{{/ifCond}}
+{{/ifCond}}{{/unless}}
 {{#if description}}/**
 {{parsedDescription}}
 */
 {{/if}}
 {{#ifHasNamespace basename}}
-namespace {{getNamespace basename}} {
+export{{#ifCond export '==' ''}} default{{/ifCond}} {{getNamespace basename}};
+
+export namespace {{getNamespace basename}} {
 {{else}}
 {{#ifHasNamespace export}}
-namespace {{getNamespace export}} {
+export{{#ifCond export '==' ''}} default{{/ifCond}} {{getNamespace basename}}
+
+export namespace {{getNamespace export}} {
 {{/ifHasNamespace}}
 {{/ifHasNamespace}}
-class {{getName basename}} {{#if baseclass}}extends {{#ifCond baseclass.basename '==' basename~}}
+export{{#ifCond export '==' ''}} default{{/ifCond}} {{#if abstract}}abstract {{/if}}class {{getName basename}} {{#if baseclass}}extends {{#if baseclass.isAmbient}}{{baseclass.name}}{{else}}{{#ifCond baseclass.basename '==' basename~}}
 {{getName basename}}Base
 {{~else}}
 {{baseclass.basename}}
-{{/ifCond}}
+{{/ifCond}}{{/if}}
 {{/if}}{
 
-{{#if constructors.length~}}
-{{#each constructors}}
+{{#if constructors.length~}}{{#each constructors}}
 /**
     {{documentThis this.description}}
 */
@@ -31,9 +34,7 @@ class {{getName basename}} {{#if baseclass}}extends {{#ifCond baseclass.basename
     {{~/each~}}
     {{~/if~}}
 );
-
-{{/each}}
-{{~/if}}
+{{/each}}{{~/if}}
 
 {{#if methods.length~}}
 {{#each methods}}

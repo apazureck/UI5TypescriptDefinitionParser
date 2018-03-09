@@ -2,14 +2,15 @@
 namespace {{getNamespace basename}} {
 {{else}}
 {{#ifHasNamespace export}}
-namespace {{getNamespace export}} {
+export{{#ifCond export '==' ''}} default{{/ifCond}} namespace {{getNamespace export}} {
 {{/ifHasNamespace}}
 {{/ifHasNamespace}}
-{{#if description}}/**
+{{#if description}}
+/**
 {{parsedDescription}}
 */
 {{/if}}
-interface {{getName basename}} {
+export{{#ifCond export '==' ''}} default{{/ifCond}} interface {{getName basename}} {
 
 {{#if events.length}}
     {{#each events}}

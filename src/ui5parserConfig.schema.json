@@ -81,6 +81,15 @@
       "description":
         "Key-value pairs, which manually declare built-in-types. The value will be put in its own d.ts file."
     },
+    "globalModules": {
+      "type": "object",
+      "patternProperties": {
+        "[\\w\\/]+": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      }
+    },
     "cleanParamNames": {
       "type": "object",
       "description":

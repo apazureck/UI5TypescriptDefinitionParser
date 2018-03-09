@@ -1,4 +1,4 @@
-import {ParsedNamespace} from './generators/entities/ParsedNamespace';
+import { ParsedNamespace } from './generators/entities/ParsedNamespace';
 import { ISymbol } from "./UI5DocumentationTypes";
 import { LogLevel } from "./log";
 
@@ -6,25 +6,26 @@ export interface IConfig {
   templates: {
     ambientInterface: string;
     modularInterface: string;
-    ambientClass:     string;
-    modularClass:     string;
-    ambientEnum:      string;
-    modularEnum:      string;
+    ambientClass: string;
+    modularClass: string;
+    ambientEnum: string;
+    modularEnum: string;
     modularNamespace: string;
     ambientNamespace: string;
-    module:           string;
-  },
+    module: string;
+  };
   loadedTemplates: {
-      ambientInterface: HandlebarsTemplateDelegate;
-      modularInterface: HandlebarsTemplateDelegate;
-      ambientClass:     HandlebarsTemplateDelegate;
-      modularClass:     HandlebarsTemplateDelegate,
-      ambientEnum:      HandlebarsTemplateDelegate;
-      modularEnum:      HandlebarsTemplateDelegate;
-      modularNamespace: HandlebarsTemplateDelegate;
-      ambientNamespace: HandlebarsTemplateDelegate;
-      module:           HandlebarsTemplateDelegate;
-  }
+    ambientInterface: HandlebarsTemplateDelegate;
+    modularInterface: HandlebarsTemplateDelegate;
+    ambientClass: HandlebarsTemplateDelegate;
+    modularClass: HandlebarsTemplateDelegate,
+    ambientEnum: HandlebarsTemplateDelegate;
+    modularEnum: HandlebarsTemplateDelegate;
+    modularNamespace: HandlebarsTemplateDelegate;
+    ambientNamespace: HandlebarsTemplateDelegate;
+    module: HandlebarsTemplateDelegate;
+  };
+  globalModules: { [name: string]: {} };
   outdir: string,
   preProcessing: {
     [jpath: string]: {
@@ -37,7 +38,7 @@ export interface IConfig {
     root: string;
     endpoints: string[];
   };
-  namespaceModules: {[moduleName: string]: ParsedNamespace[]}
+  namespaceModules: { [moduleName: string]: ParsedNamespace[] }
   /**
    * Maps given types from the documentation to a custom given type
    *
@@ -85,6 +86,7 @@ export interface IPostProcessor {
   regexFlags?: string;
   searchString: string;
   replacement: string;
+  
 }
 
 export interface IDictionary {
@@ -99,6 +101,7 @@ export interface IType {
   type: ISymbol
   alias?: string;
   importedFromNamespace?: string;
+  isDefaultExport?: boolean;
 }
 
 export enum OverloadFlags {

@@ -34,6 +34,10 @@ export class ParsedClass extends ParsedBase implements IClass {
   getAddImport(): (typeOrModule: string, context?: "static") => string {
     return this.onAddImport.bind(this);
   }
+
+  get abstract() {
+    return this.symbol.abstract;
+  }
   constructor(
     symbol: ISymbol,
     private classTemplate: HandlebarsTemplateDelegate<any>,

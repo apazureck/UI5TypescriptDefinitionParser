@@ -153,8 +153,70 @@
     "sap.ui.core.Collision": "declare namespace sap.ui.core { export type Collision = 'flip flip' | 'fit flip' | 'none flip' | 'flip fit' | 'fit fit' | 'none fit' | 'flip none' | 'fit none' | 'none none'; }",
     "sap.ui.layout.form.GridElementCells": "declare namespace sap.ui.layout.form { export type GridElementCells = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 'auto' | 'full'; }",
     "sap.ui.model.odata.v2.ODataAnnotations.Source": "declare namespace sap.ui.model.odata.v2.ODataAnnotations { export type Source = string; }",
-    "sap.uxap.BlockBaseColumnLayout": "declare namespace sap.uxap { export type BlockBaseColumnLayout = 'auto' | 1 | 2 | 3; }",
-    "sap.ui.base.Metadata": "declare namespace sap.ui.base { export type Metadata = any; }"
+    "sap.uxap.BlockBaseColumnLayout": "declare namespace sap.uxap { export type BlockBaseColumnLayout = 'auto' | 1 | 2 | 3; }"
+  },
+  "globalModules": {
+    "sap/ui/Global": {},
+    "sap/ui/core/Component": {},
+    "sap/ui/base/ManagedObject": {},
+    "sap/ui/base/EventProvider": {},
+    "sap/ui/base/Object": {},
+    "sap/ui/base/Interface": {},
+    "sap/ui/base/Event": {},
+    "sap/ui/model/Type": {},
+    "sap/ui/model/Sorter": {},
+    "sap/ui/model/Context": {},
+    "sap/ui/model/Model": {},
+    "sap/ui/core/message/MessageProcessor": {},
+    "sap/ui/model/ListBinding": {},
+    "sap/ui/model/Binding": {},
+    "sap/ui/model/DataState": {},
+    "sap/ui/model/FilterType": {},
+    "sap/ui/model/ChangeReason": {},
+    "sap/ui/model/ContextBinding": {},
+    "sap/ui/model/PropertyBinding": {},
+    "sap/ui/model/BindingMode": {},
+    "sap/ui/model/TreeBinding": {},
+    "sap/ui/model/Filter": {},
+    "sap/ui/model/FilterOperator": {},
+    "sap/ui/model/MetaModel": {},
+    "sap/ui/core/EventBus": {},
+    "sap/ui/core/Manifest": {},
+    "sap/ui/base/Metadata": {},
+    "sap/ui/core/ComponentMetadata": {},
+    "sap/ui/core/mvc/Controller": {},
+    "sap/ui/core/Element": {},
+    "sap/ui/core/CustomData": {},
+    "sap/ui/core/LayoutData": {},
+    "sap/ui/core/TooltipBase": {},
+    "sap/ui/core/Control": {},
+    "sap/ui/core/mvc/View": {},
+    "sap/ui/core/Fragment": {},
+    "sap/ui/core/Core": {},
+    "sap/ui/core/RenderManager": {},
+    "sap/ui/core/Configuration": {},
+    "sap/ui/core/Locale": {},
+    "sap/ui/core/library": {},
+    "sap/ui/core/UIArea": {},
+    "sap/ui/app/Application": {},
+    "sap/ui/core/UIComponent": {},
+    "sap/ui/core/routing/Router": {},
+    "sap/ui/core/routing/Route": {},
+    "sap/ui/core/routing/Targets": {},
+    "sap/ui/core/routing/Target": {},
+    "sap/ui/core/routing/Views": {},
+    "sap/ui/core/ComponentContainer": {},
+    "sap/ui/core/message/MessageManager": {},
+    "sap/ui/core/message/Message": {},
+    "sap/ui/model/message/MessageModel": {},
+    "sap/ui/model/ClientModel": {},
+    "sap/ui/core/mvc/HTMLView": {},
+    "sap/ui/core/mvc/JSONView": {},
+    "sap/ui/core/mvc/JSView": {},
+    "sap/ui/core/tmpl/Template": {},
+    "sap/ui/core/tmpl/TemplateControl": {},
+    "sap/ui/core/mvc/TemplateView": {},
+    "sap/ui/core/mvc/XMLView": {}
   },
   "cleanParamNames": {
     "<code>vData</code>": "vData",
@@ -163,6 +225,16 @@
   "cacheApis": true,
   "logLevel": "Info",
   "preProcessing": {
+    "mockServerWrongStatic": {
+      "comment": "Fixes wrong mockserver class, its not abstract. See usage in https://github.com/SAP/openui5-masterdetail-app/blob/master/webapp/localService/mockserver.js",
+      "jsonpath": "symbols[?(@.name == 'sap.ui.core.util.MockServer')]",
+      "script": "val.abstract = false;"
+    },
+    "messageboxEnums": {
+      "comment": "Forces Pseudinterfaces to be ambient to fix multiple module exports",
+      "jsonpath": "symbols[?(@.name == 'sap.m.MessageBox.Action' || @.name == 'sap.m.MessageBox.Icon')]",
+      "script": "val.basename = 'MessageBox.' + val.export; val.export = undefined;"
+    },
     "pseudoInterfaces": {
       "comment": "Forces Pseudinterfaces to be ambient to fix multiple module exports",
       "jsonpath": "symbols[?(@.name == 'sap.m.NavContainerChild')]",
@@ -205,7 +277,7 @@
     },
     "correct sap.ui.core.Popup.Dock type": {
       "comment": "Makes correct enum of namespace",
-      "script": "val.kind = 'enum';",
+      "script": "val.kind = 'enum'; val.basename = 'Dock'; val.export = 'Dock'",
       "jsonpath": "$.symbols[?(@.name == 'sap.ui.core.Popup.Dock')]"
     }
   },
@@ -237,12 +309,12 @@
         "replacement": "public setPriority(priority: string, suppressInvalidation?: boolean): this;"
       }
     ],
-    "modules/sap/m/selectionDetails": [{
+    "classes/sap/m/selectionDetails": [{
       "searchString": "attachSelectionHandler();",
       "replacement": "attachSelectionHandler(): any;"
     }],
-    "modules/sap/ui/model/Model": [{
-        "searchString": "class Model extends MessageProcessor {",
+    "classes/sap/ui/model/Model": [{
+        "searchString": "class Model extends sap.ui.core.MessageProcessor {",
         "replacement": "class Model<T = any> extends MessageProcessor {"
       },
       {
@@ -258,9 +330,9 @@
         "replacement": "public isBindingModeSupported(sMode: sap.ui.model.BindingMode): boolean;"
       }
     ],
-    "modules/sap/ui/base/Event": [{
-        "searchString": "class Event extends Object {",
-        "replacement": "class Event<Tsource = any, Tparameters = any> extends Object {"
+    "classes/sap/ui/base/Event": [{
+        "searchString": "export class Event extends sap.ui.base.Object {",
+        "replacement": "class Event<Tsource = any, Tparameters = any> extends sap.ui.base.Object {"
       },
       {
         "searchString": "public getParameter(sName: string): any;",
@@ -275,7 +347,7 @@
         "replacement": "public getSource(): Tsource;"
       }
     ],
-    "modules/sap/ui/base/Object": [{
+    "classes/sap/ui/base/Object": [{
       "searchString": "public getInterface(): Interface;",
       "replacement": "public getInterface(): Interface | void | {};"
     }],
@@ -321,12 +393,6 @@
         "replacement": "export class Logger {"
       }
     ],
-    "namespaces/jquery.sap.global": [{
-      "searchString": " \\| Control",
-      "replacement": "",
-      "isRegex": true,
-      "regexFlags": "g"
-    }],
     "classes/sap/ui/core/routing/Target": [{
         "searchString": "protected destroy(): this;",
         "replacement": "public destroy(): this;"
@@ -336,13 +402,13 @@
         "replacement": "public constructor(oOptions: {}, oViews: Views, oParent: Target);"
       }
     ],
-    "classes/sap/ui/commons/DropdownBox": [{
+    "modules/sap/ui/commons/DropdownBox": [{
       "searchString": "protected onAfterRendering(oEvent: jQuery.Event): any;",
       "replacement": "protected onAfterRendering(oEvent?: jQuery.Event): any;"
     }],
-    "classes/sap/m/MultiComboBox": [{
-      "searchString": "public destroyItems(): ComboBox;",
-      "replacement": ""
+    "modules/sap/m/MultiComboBox": [{
+      "searchString": "import Dialog from \"sap/m/Dialog\";",
+      "replacement": "import Dialog from \"sap/m/Dialog\";\nimport ComboBox from \"sap/m/ComboBox\";"
     }],
     "classes/sap/ui/model/CompositeBinding": [{
         "searchString": "import Metadata from \"sap/ui/base/Metadata\";",
@@ -353,16 +419,16 @@
         "replacement": "import Metadata from \"sap/ui/base/Metadata\";\nimport DataState from 'sap/ui/model/DataState';"
       }
     ],
-    "classes/sap/ui/model/analytics/AnalyticalBinding": [{
-        "searchString": "hasChildren(oContext: Context, mParameters: any)",
-        "replacement": "hasChildren(oContext: Context, mParameters?: any)"
+    "modules/sap/ui/model/analytics/AnalyticalBinding": [{
+        "searchString": "hasChildren(oContext: sap.ui.model.Context, mParameters: any)",
+        "replacement": "hasChildren(oContext: sap.ui.model.Context, mParameters?: any)"
       },
       {
         "searchString": "import QueryResult from \"sap/ui/model/analytics/odata4analytics\";",
         "replacement": "import {QueryResult} from \"sap/ui/model/analytics/odata4analytics\";"
       }
     ],
-    "classes/sap/ui/model/odata/ODataMessageParser": [{
+    "modules/sap/ui/model/odata/ODataMessageParser": [{
       "searchString": "public parse(oResponse: any, oRequest: any, mGetEntities: any, mChangeEntities: any): any;",
       "replacement": "public parse(oResponse: any, oRequest: any, mGetEntities: any, mChangeEntities: any): any;\npublic parse(): any;\n"
     }],
@@ -378,18 +444,20 @@
       "searchString": "getModel(iPart: number): Model;",
       "replacement": "getModel(iPart: number): any;"
     }],
-    "classes/sap/ui/model/odata/v2/ODataTreeBinding": [{
-      "searchString": "public getNodeContexts(oContext: Context, iStartIndex: number, iLength: number, iThreshold: number): any[];",
-      "replacement": "public getNodeContexts(oContext: Context, iStartIndex: number, iLength: number, iThreshold?: number): any[];"
+    "modules/sap/ui/model/odata/v2/ODataTreeBinding": [{
+      "searchString": "public getNodeContexts(oContext: sap.ui.model.Context, iStartIndex: number, iLength: number, iThreshold: number): any[];",
+      "replacement": "public getNodeContexts(oContext: sap.ui.model.Context, iStartIndex: number, iLength: number, iThreshold?: number): any[];"
     }],
     "classes/sap/ui/base/ManagedObject": [{
       "searchString": "public getModel(sName?: string | any): Model;",
       "replacement": "public getModel<TModel extends Model>(sName?: string): TModel;"
     }],
-    "classes/sap/ui/core/mvc/Controller": [{
-      "searchString": "public byId(sId: string): Element;",
-      "replacement": "public byId<T extends Element = Element>(sId: string): T;"
-    }],
+    "classes/sap/ui/core/mvc/Controller": [
+      {
+        "searchString": "public byId(sId: string): sap.ui.core.Element;",
+        "replacement": "public byId<T extends sap.ui.core.Element = any>(sId: sap.ui.core.ID): T;"
+      }
+    ],
     "classes/sap/ui/model/analytics/odata4analytics*": [{
       "searchString": "export default class ",
       "replacement": "export class "
@@ -402,30 +470,7 @@
       "searchString": "export default class ",
       "replacement": "export class "
     }],
-    "namespaces/jQuery": [{
-      "searchString": " \\| Control",
-      "replacement": "",
-      "isRegex": true,
-      "regexFlags": "g"
-    }],
-    "namespaces/jQuery.sap": [{
-      "searchString": " \\| Control",
-      "replacement": "",
-      "isRegex": true,
-      "regexFlags": "g"
-    }],
-    "namespaces/**/*": [{
-      "searchString": "(Action|TextDirection|Icon|Dock|Controller|BusyIndicator|Control|Metadata|ValueState|IContext|Context|ValueListType|Component|View|Fragment|Core|HTMLView|JSONView|JSView|Interface|Template|TemplateView|XMLView)",
-      "replacement": "any",
-      "isRegex": true,
-      "regexFlags": "g"
-    }],
-    "namespaces/sap/ui/Global.ui": [{
-      "searchString": "anyany | ",
-      "replacement": ""
-    }],
-    "modules/sap/ui/core/dnd/DragDropInfo": [
-      {
+    "modules/sap/ui/core/dnd/DragDropInfo": [{
         "searchString": "[^\\.]dnd\\.(\\w+)",
         "isRegex": true,
         "regexFlags": "g",
@@ -442,12 +487,24 @@
         "replacement": "any"
       }
     ],
-    "modules/sap/ui/core/routing/History": [
+    "modules/sap/ui/core/routing/History": [{
+      "searchString": " routing\\.HistoryDirection",
+      "isRegex": true,
+      "regexFlags": "g",
+      "replacement": " HistoryDirection"
+    }],
+    "namespaces/jquery.sap.global": [
       {
-        "searchString": " routing\\.HistoryDirection",
+        "searchString": "declare namespace jQuery {",
+          "replacement": "declare namespace sapui {\nexport import _ = sap.ui;\n}\n\ndeclare namespace jQuery {"
+      }
+    ],
+    "namespaces/**/jquery.*": [
+      {
+        "searchString": "sap\\.ui\\.",
         "isRegex": true,
         "regexFlags": "g",
-        "replacement": " HistoryDirection"
+        "replacement": "sapui._."
       }
     ]
   }

@@ -1,4 +1,8 @@
-namespace {{basename}} {
+/**
+{{documentThis this.description}}
+*/
+{{#ifCond export '==' ''}}export default {{basename}};
+{{else}}{{#ifCond export '!=' undefined}}export{{/ifCond}} {{/ifCond}}namespace {{basename}} {
     
     {{#if this.methods.length~}}
     // Methods

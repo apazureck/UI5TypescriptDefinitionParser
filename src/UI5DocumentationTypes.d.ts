@@ -12,6 +12,7 @@ export type StaticType = "string";
 export type Cardinality = "0..n";
 
 export interface ISymbol {
+    abstract?: boolean
     forceAmbient?: boolean;
     forceModular?: boolean;
     kind: Kind;

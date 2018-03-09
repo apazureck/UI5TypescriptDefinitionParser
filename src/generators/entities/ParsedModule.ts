@@ -12,13 +12,13 @@ export class ParsedModule extends ParsedBase {
             const potentialNamespace = this.moduleContent[0];
             if (potentialNamespace instanceof ParsedNamespace) {
                 // A empty namespace is set as default namespace
-                this.baseNamespace = potentialNamespace.basename;
-                this.excludedFromBaseNamespace = [this.moduleContent.shift()];
+                // this.baseNamespace = potentialNamespace.basename;
+                // this.excludedFromBaseNamespace = [this.moduleContent.shift()];
                 return;
             } else if (potentialNamespace instanceof ParsedClass) {
                 // Rest of the exports overloads with baseclass
-                this.baseNamespace = potentialNamespace.basename;
-                this.excludedFromBaseNamespace = [this.moduleContent.shift()];
+                // this.baseNamespace = potentialNamespace.basename;
+                // this.excludedFromBaseNamespace = [this.moduleContent.shift()];
             }
         }
     }
@@ -34,7 +34,7 @@ export class ParsedModule extends ParsedBase {
 
     }
 
-    constructor(name: string, config: IConfig, public moduleContent: ParsedBase[], private decorated: ILogDecorator, private template: HandlebarsTemplateDelegate) {
+    constructor(name: string, config: IConfig, public moduleContent: ParsedBase[], private decorated: ILogDecorator, private template: HandlebarsTemplateDelegate, public isGlobal: boolean) {
         super(config);
         this.symbol = {
             basename: name.split(/\//g).pop(),
@@ -62,13 +62,30 @@ export class ParsedModule extends ParsedBase {
 
             // Check if basename is equal to the export name
             // const namespacedExportArray = imp.type.export.split(".");
-            if (imp.type.basename.split(".").pop() === imp.type.export.split(".").pop()) {
-
-                const nsimport = imp.type.module.replace(/\//g, "");
+            if(imp.type.module === this.name) {
+                continue;
+            }
+            if(imp.type.export === "") {
+                imp.isDefaultExport = true;
+            } else if (imp.type.basename.split(".").length > 1) {
+                const nsimport = imp.type.basename.split(".").shift();
 
                 if (!this.importedNamespaces[nsimport]) {
                     this.imports[nsimport] = {
-                        alias: nsimport,
+                        type: {
+                            basename: nsimport,
+                            module: imp.type.module,
+                        } as any
+                    }
+                    this.importedNamespaces[nsimport] = true;
+                    this.importedNamespaces[nsimport] = true;
+                }
+                imp.importedFromNamespace = nsimport;
+            } else if (imp.type.export.split(".").length > 1) {
+                const nsimport = imp.type.export.split(".").shift();
+
+                if (!this.importedNamespaces[nsimport]) {
+                    this.imports[nsimport] = {
                         type: {
                             basename: nsimport,
                             module: imp.type.module,
