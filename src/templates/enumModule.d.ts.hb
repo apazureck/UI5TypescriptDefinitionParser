@@ -1,12 +1,10 @@
 /** 
 {{documentThis description}} 
 */
-{{#ifHasNamespace basename}}
-namespace {{getNamespace basename}} {
-{{else}}
-{{#ifHasNamespace export}}
-namespace {{getNamespace export}} {
-{{/ifHasNamespace}}
+{{#ifHasNamespace basename}}namespace {{getNamespace basename}} {
+    export {{else}}
+{{#ifHasNamespace export}}namespace {{getNamespace export}} { 
+    export{{/ifHasNamespace}}
 {{/ifHasNamespace}}
 enum {{getName basename}} {
 {{#each this.properties}}

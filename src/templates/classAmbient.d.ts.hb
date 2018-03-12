@@ -4,23 +4,20 @@ declare namespace {{getNamespace name}} {
 {{parsedDescription}}
 */
 {{/if}}
-export class {{basename}} {{#if baseclass}}extends {{baseclass.name}}{{#ifCond baseclass.name '==' name}}Base{{/ifCond}}{{/if}}{
+export {{#if abstract}}abstract {{/if}}class {{basename}} {{#if baseclass}}extends {{baseclass.name}}{{#ifCond baseclass.name '==' name}}Base{{/ifCond}}{{/if}}{
 
-{{#if constructors.length~}}
-{{#each constructors}}
+{{#if constructors.length~}}{{#each constructors}}
 /**
     {{documentThis this.description}}
 */
 {{this.visibility}} {{this.name}}(
     {{~#if this.parameters.length~}}
     {{~#each this.parameters~}}
-        {{#unless @first}} {{/unless}}{{this.name}}: {{this.type}}{{#unless @last}},{{/unless}}
+        {{#unless @first}} {{/unless}}{{this.name}}{{#if this.optional}}?{{/if}}: {{this.type}}{{#unless @last}},{{/unless}}
     {{~/each~}}
     {{~/if~}}
 );
-
-{{/each}}
-{{~/if}}
+{{/each}}{{~/if}}
 
 {{#if methods.length~}}
 {{#each methods}}

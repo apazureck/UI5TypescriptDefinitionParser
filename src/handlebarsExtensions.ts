@@ -46,6 +46,12 @@ export function registerHelpers(Handlebars: any) {
     return v1.split(".").length > 1 ? options.fn(this) : options.inverse(this);
   });
 
+  Handlebars.registerHelper("unlessHasNamespace", function (v1: string, options) {
+    if(!v1)
+      return options.fn(this);
+    return v1.split(".").length > 1 ? options.inverse(this) : options.fn(this);
+  });
+
   let importedNamespaces: { [key: string]: "defined" };
   let lasttype: string;
 
@@ -95,10 +101,13 @@ export function registerHelpers(Handlebars: any) {
   });
 
   Handlebars.registerHelper("getImport", function (imp: IType) {
-    if (imp.importedFromNamespace) {
-      return `type ${imp.alias || imp.type.basename} = ${imp.importedFromNamespace}.${imp.type.export}`
-    } else {
+    if(imp.importedFromNamespace) {
+      return `type ${imp.alias || imp.type.basename} = ${imp.importedFromNamespace}.${imp.type.basename}`;
+    }
+    if (imp.isDefaultExport) {
       return `import ${imp.alias || imp.type.basename} from "${imp.type.module}"`;
+    } else {
+      return `import { ${imp.type.basename} ${imp.alias ? ("as " + imp.alias) : ""} } from "${imp.type.module}"`
     }
   })
 
@@ -119,7 +128,7 @@ export function registerHelpers(Handlebars: any) {
     return makeComment(styleJsDoc(text));
   });
 
-  Handlebars.registerHelper("breakpointer", function (paramtocheck: any) {
+  Handlebars.registerHelper("debug", function (paramtocheck: any) {
     return paramtocheck;
   });
 }

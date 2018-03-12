@@ -42,16 +42,16 @@ interface IObservedApis {
  */
 export class Parser implements ILogDecorator {
   parseModules(modules: { [modulename: string]: { symbols: ISymbol[], generated: ParsedBase[], module?: ParsedModule } }, config: IConfig): void {
-    
+
     for (const mname in this.modules) {
       if (this.modules.hasOwnProperty(mname)) {
         const mod = this.modules[mname];
         const file = path.join(config.outdir, "modules", mname + ".d.ts");
-        if(!fs.existsSync(path.dirname(file))) {
+        if (!fs.existsSync(path.dirname(file))) {
           MakeDirRecursiveSync(path.dirname(file));
         }
         try {
-          fs.writeFileSync(file, mod.module.typings, { encoding: "utf-8"});
+          fs.writeFileSync(file, mod.module.typings, { encoding: "utf-8" });
         } catch (error) {
         }
       }
@@ -75,12 +75,14 @@ export class Parser implements ILogDecorator {
     for (const modname in this.modules) {
       if (this.modules.hasOwnProperty(modname)) {
         const mod = this.modules[modname];
+        const isGlobal = this.config.globalModules[modname] !== undefined;
+
         for (const symbol of mod.symbols) {
           switch (symbol.kind) {
             case "namespace":
               const ns = new ParsedNamespace(
                 symbol, this.config, this, this.config.loadedTemplates.modularNamespace, true);
-              this.allNamespaces[symbol.name] = ns;
+              if (!isGlobal) { this.allNamespaces[symbol.name] = ns; }
               mod.generated.push(ns);
               break;
             case "class":
@@ -91,7 +93,7 @@ export class Parser implements ILogDecorator {
                 this,
                 false
               );
-              this.allClasses[c.name] = c;
+              if (!isGlobal) { this.allClasses[c.name] = c; }
               mod.generated.push(c);
               break;
             case "enum":
@@ -116,7 +118,7 @@ export class Parser implements ILogDecorator {
               break;
           }
         }
-        mod.module = new ParsedModule(modname, this.config, mod.generated, this, this.config.loadedTemplates.module);
+        mod.module = new ParsedModule(modname, this.config, mod.generated, this, this.config.loadedTemplates.module, isGlobal);
       }
     }
   }
@@ -284,7 +286,7 @@ export class Parser implements ILogDecorator {
     this.preprocessApis(this.observedAPIs);
 
     this.logger.Info("Creating ambient type map");
-    this.createAmbientAndModularDictionary(this.observedAPIs);
+    this.createGlobalAmbientAndModularDictionary(this.observedAPIs);
 
     this.getNamespaces(this.config);
 
@@ -358,11 +360,10 @@ export class Parser implements ILogDecorator {
       if (ppitem.comment) {
         this.logger.Info(ppitem.comment);
       }
-      let bar = createNewProgressBar("Processing", apicount, ["api: :api"]);
       const func = new Function("val", `${ppitem.script}\nreturn val;`);
       let debugwrapper = (val): void => {
         try {
-          this.logger.Debug("Caught Object:");
+          this.logger.Info("Caught Object: " + val.name || "unknown");
           this.logger.Debug(JSON.stringify(val));
         } catch (error) { }
         return func(val);
@@ -374,7 +375,6 @@ export class Parser implements ILogDecorator {
           for (const path of paths) {
             jpath.apply(api.api, jpath.stringify(path), debugwrapper);
           }
-          bar.tick({ api: endpointname });
         } catch (error) {
           if (error.message.startsWith("Lexical error")) {
             this.logger.Error(
@@ -392,7 +392,7 @@ export class Parser implements ILogDecorator {
 
   // 2nd step: devide all types in ambient and modular types
 
-  createAmbientAndModularDictionary(allApis: {
+  createGlobalAmbientAndModularDictionary(allApis: {
     [endpoint: string]: {
       loaded: boolean;
       api?: IApi;
@@ -410,32 +410,40 @@ export class Parser implements ILogDecorator {
   private addModularSymbol(symbol: ISymbol) {
     if (this.config.modularTypes[symbol.name]) {
       this.logger.Error(
-        "Modular Symbol" + symbol.name + " is declared multiple times!"
+        "Modular Symbol" + symbol.name + "  is declared multiple times!"
       );
     } else {
-      if (symbol.export === undefined) {
-        symbol.module += "/" + symbol.basename;
-      }
+      // if (symbol.export === undefined) {
+      //   symbol.module += "/" + symbol.basename;
+      // }
       this.config.modularTypes[symbol.name] = symbol;
     }
   }
 
-  addAmbientSymbol = (symbol: ISymbol) => {
+  private addAmbientSymbol(symbol: ISymbol) {
     if (this.config.ambientTypes[symbol.name]) {
       this.logger.Error(
-        "Ambient Symbol" + symbol.name + " is declared multiple times!"
+        "Ambient Symbol '" + symbol.name + "' is declared multiple times!"
       );
     } else {
       this.config.ambientTypes[symbol.name] = symbol;
     }
   }
 
+  private addGlobalSymbol(symbol: ISymbol) {
+    this.addAmbientSymbol(symbol);
+    this.addModularSymbol(symbol);
+  }
+
   createAmbientDictionaryFromApi(api: IApi) {
     for (const symbol of api.symbols) {
-      if (symbol.module.match(/(\w+[\."])+/)) {
+      if (this.config.globalModules[symbol.module]) {
+        this.addGlobalSymbol(symbol);
+      } else if (symbol.module.match(/(\w+[\."])+/)) {
         if (symbol.forceModular) {
           this.addModularSymbol(symbol);
-        } else {
+        }
+        else {
           this.addAmbientSymbol(symbol);
         }
       } else if (symbol.module.match(/^(\w+[\/"])+/)) {
@@ -557,7 +565,7 @@ export class Parser implements ILogDecorator {
     for (const nsname in this.allNamespaces) {
       if (this.allNamespaces.hasOwnProperty(nsname)) {
         const ns = this.allNamespaces[nsname];
-        if(ns.isModule) {
+        if (ns.isModule) {
           continue;
         }
         let filepath = path.join(
@@ -682,7 +690,7 @@ export class Parser implements ILogDecorator {
       if (allClasses.hasOwnProperty(cname)) {
         const c = allClasses[cname];
         bar.tick();
-        if(this.config.ambientTypes[c.name])
+        if (this.config.ambientTypes[c.name])
           this.ParseClass(c);
         generatedclasses++;
       }

@@ -1,3 +1,6 @@
+/**
+{{documentThis this.description}}
+*/
 namespace {{basename}} {
     
     {{#if this.methods.length~}}

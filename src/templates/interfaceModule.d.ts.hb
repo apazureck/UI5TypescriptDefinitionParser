@@ -5,7 +5,8 @@ namespace {{getNamespace basename}} {
 namespace {{getNamespace export}} {
 {{/ifHasNamespace}}
 {{/ifHasNamespace}}
-{{#if description}}/**
+{{#if description}}
+/**
 {{parsedDescription}}
 */
 {{/if}}

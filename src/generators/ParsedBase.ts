@@ -77,7 +77,7 @@ export abstract class ParsedBase implements ILogDecorator {
   get name(): string {
     return this.symbol.name;
   }
-  protected isAmbient?: boolean;
+  public isAmbient?: boolean;
 
   protected getType(originType: string, context?: "static", complexOut?: { restype: string, origintype: string }[]): string {
     if (!originType) {
@@ -245,14 +245,7 @@ export abstract class ParsedBase implements ILogDecorator {
 
         // Check if type is in a namespace of local module
         if (this.module === newmodulartype.module) {
-          if (this.constructor.name === "ParsedNamespace") {
-
-          } else if (this.constructor.name === "ParsedClass") {
-            // Check if this is the default export
-            if(this.export === "") {
-              return this.basename + "." + typeName.split(".").pop();
-            }
-          }
+          return typeName.split(".").pop();
         }
 
         // Import new type
